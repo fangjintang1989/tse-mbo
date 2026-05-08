@@ -6,9 +6,10 @@ Minimal C++20 hello-world scaffold.
 
 - `src/main.cpp` prints a test line.
 - `docs/assignment-original.docx` is the original Word assignment file.
+- `docs/protocol-original.docx` is the original Word protocol file.
 - `docs/protocol-original.pdf` is the original protocol PDF file.
 - `docs/assignment-source.md` contains the extracted Word document text.
-- `docs/protocol-source.md` contains the extracted PDF text.
+- `docs/protocol-source.md` contains the extracted Word protocol text.
 
 ## Build
 
