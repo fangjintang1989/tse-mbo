@@ -6,4 +6,4 @@ results/
 *.exe
 *.csv
 *.log
-
+~$*.docx

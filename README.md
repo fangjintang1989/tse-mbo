@@ -10,6 +10,7 @@ Minimal C++20 hello-world scaffold.
 - `docs/protocol-original.pdf` is the original protocol PDF file.
 - `docs/assignment-source.md` contains the extracted Word document text.
 - `docs/protocol-source.md` contains the extracted Word protocol text.
+- `docs/protocol-summary.md` is the concise protocol summary plus open questions.
 
 ## Build
 
