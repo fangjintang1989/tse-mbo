@@ -1,0 +1,9 @@
+build/
+out/
+results/
+*.o
+*.obj
+*.exe
+*.csv
+*.log
+
