@@ -82,4 +82,3 @@ std::uint32_t NetworkDecoder::read_be_u32(std::span<const std::byte> bytes) {
 }
 
 }  // namespace tse_mbo
-

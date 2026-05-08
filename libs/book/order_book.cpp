@@ -156,4 +156,3 @@ IssueState& OrderBookReplayer::issue_state_for(const FlexPacketHeader& header) {
 }
 
 }  // namespace tse_mbo
-

@@ -68,4 +68,3 @@ std::string FlexParser::read_ascii_trimmed(std::span<const std::byte> bytes) {
 }
 
 }  // namespace tse_mbo
-

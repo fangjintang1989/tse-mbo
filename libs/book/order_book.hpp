@@ -66,4 +66,3 @@ class OrderBookReplayer {
 };
 
 }  // namespace tse_mbo
-

@@ -12,7 +12,7 @@ Historical TSE FLEX Full MBO processing assignment in C++.
 - `docs/protocol-summary.md` is the concise protocol summary plus open questions.
 - `notes/` keeps the working memory, decisions, and implementation plan for this repo.
 - `apps/tse_mbo_cli/` contains the executable entrypoint.
-- `libs/core/` contains the reusable parsing and replay logic.
+- `libs/` contains the reusable parsing and replay logic.
 
 ## Layout
 
@@ -20,11 +20,10 @@ Historical TSE FLEX Full MBO processing assignment in C++.
 apps/
   tse_mbo_cli/
 libs/
-  core/
-    app/
-    ingest/
-    flex/
-    book/
+  app/
+  ingest/
+  flex/
+  book/
 docs/
 notes/
 ```
@@ -45,4 +44,4 @@ cmake --build build
 ## Notes
 
 - This machine does not currently have `cmake` or a C++ compiler installed, so I could not compile it here.
-- The structure is intentionally split into a thin CLI app plus a core library layer because that reads more professionally for an interview submission than a single flat source directory.
+- The structure is intentionally split into a thin CLI app plus reusable modules under `libs/` because that reads more professionally for an interview submission than a single flat source directory, without adding unnecessary nesting.

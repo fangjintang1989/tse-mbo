@@ -15,4 +15,3 @@ struct IndicativeMatchResult {
 IndicativeMatchResult calculate_indicative_match(const IssueState& issue_state);
 
 }  // namespace tse_mbo
-

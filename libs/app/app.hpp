@@ -24,4 +24,3 @@ int run(const AppConfig& config);
 void print_usage();
 
 }  // namespace tse_mbo
-

@@ -103,4 +103,3 @@ std::vector<CaptureRecord> PcapReader::read_all(const std::filesystem::path& pat
 }
 
 }  // namespace tse_mbo
-

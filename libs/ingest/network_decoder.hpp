@@ -30,4 +30,3 @@ class NetworkDecoder {
 };
 
 }  // namespace tse_mbo
-
