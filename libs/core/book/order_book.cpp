@@ -1,7 +1,6 @@
-#include "tse_mbo/order_book.hpp"
+#include "book/order_book.hpp"
 
 #include <bit>
-#include <stdexcept>
 
 namespace tse_mbo {
 
@@ -157,3 +156,4 @@ IssueState& OrderBookReplayer::issue_state_for(const FlexPacketHeader& header) {
 }
 
 }  // namespace tse_mbo
+

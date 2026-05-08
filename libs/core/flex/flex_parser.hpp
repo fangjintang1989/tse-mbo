@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "tse_mbo/network_decoder.hpp"
+#include "ingest/network_decoder.hpp"
 
 namespace tse_mbo {
 

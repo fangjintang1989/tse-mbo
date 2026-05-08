@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "tse_mbo/order_book.hpp"
+#include "book/order_book.hpp"
 
 namespace tse_mbo {
 

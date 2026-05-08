@@ -1,4 +1,4 @@
-#include "tse_mbo/app.hpp"
+#include "app/app.hpp"
 
 int main(int argc, char* argv[]) {
   const auto parsed = tse_mbo::parse_args(argc, argv);

@@ -1,10 +1,9 @@
 # tse-mbo
 
-Minimal C++20 hello-world scaffold.
+Historical TSE FLEX Full MBO processing assignment in C++.
 
 ## What’s here
 
-- `src/main.cpp` prints a test line.
 - `docs/assignment-original.docx` is the original Word assignment file.
 - `docs/protocol-original.docx` is the original Word protocol file.
 - `docs/protocol-original.pdf` is the original protocol PDF file.
@@ -12,6 +11,23 @@ Minimal C++20 hello-world scaffold.
 - `docs/protocol-source.md` contains the extracted Word protocol text.
 - `docs/protocol-summary.md` is the concise protocol summary plus open questions.
 - `notes/` keeps the working memory, decisions, and implementation plan for this repo.
+- `apps/tse_mbo_cli/` contains the executable entrypoint.
+- `libs/core/` contains the reusable parsing and replay logic.
+
+## Layout
+
+```text
+apps/
+  tse_mbo_cli/
+libs/
+  core/
+    app/
+    ingest/
+    flex/
+    book/
+docs/
+notes/
+```
 
 ## Build
 
@@ -29,4 +45,4 @@ cmake --build build
 ## Notes
 
 - This machine does not currently have `cmake` or a C++ compiler installed, so I could not compile it here.
-- The repo is kept small on purpose so you can verify the document conversion first.
+- The structure is intentionally split into a thin CLI app plus a core library layer because that reads more professionally for an interview submission than a single flat source directory.

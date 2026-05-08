@@ -6,7 +6,7 @@
 #include <span>
 #include <vector>
 
-#include "tse_mbo/pcap_reader.hpp"
+#include "ingest/pcap_reader.hpp"
 
 namespace tse_mbo {
 
