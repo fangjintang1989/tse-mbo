@@ -10,19 +10,28 @@ The work is split into 3 steps:
 
 1. get PCAP data into a usable decoded stream
 2. parse the decoded feed into an order book
-3. calculate indicative match price and volume
+3. calculate indicative equilibrium price and volume (IEP/IEV)
 
-Step 3 is intentionally deferred until the user provides the calculation rule.
+Step 3 now uses the screenshot-derived IEP/IEV rule captured in `notes/step3_iep_iev_calculation.cpp`.
 
 ## Current implementation direction
 
-Before step 3, the code should support:
+Source code is organized under a single `src/` root:
+
+- `src/cli`: executable entrypoint
+- `src/app`: orchestration, arguments, and output
+- `src/ingest`: PCAP and network decoding
+- `src/flex`: FLEX packet parsing
+- `src/book`: order-book replay and IEP/IEV calculation
+
+The code now supports:
 
 - reading the provided `.pcap.gz` files
 - decoding Ethernet, IPv4, UDP, and FLEX payloads
 - parsing packet headers and tag records
 - replaying order-book-relevant tags into per-issue state
-- exposing a predefined function that can later calculate indicative match price and volume from the book
+- maintaining opening-eligible per-issue ladder state and a rolling IEP/IEV result
+- exposing `calculate_indicative_match(const IssueState&)` as the step 3 calculation boundary
 
 ## Input files currently available
 
@@ -37,13 +46,12 @@ Before step 3, the code should support:
 
 - The repo is `/home/jason/codingAssignment/tse-mbo`
 - GitHub remote is configured and working over SSH
-- This machine currently does not have `cmake` or a C++ compiler installed
+- Local build/test is currently available with `cmake 4.2.3` and `g++ 15.2.0`
 
 ## Important scope boundary
 
-For now, we are targeting:
+Current implemented scope:
 
 - step 1: packet ingestion
 - step 2: order-book reconstruction
-
-We are not yet implementing the final indicative auction calculation logic.
+- step 3: rolling IEP/IEV calculation and CSV export

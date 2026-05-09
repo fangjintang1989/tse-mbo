@@ -52,9 +52,13 @@ Expected internal types:
 - `OrderBook`
 - `IssueState`
 
-## Step 3: indicative calculation
+## Step 3: IEP/IEV calculation
 
-Deferred pending user-provided rule.
+Implemented using the screenshot-derived rule.
+
+Readable extracted note:
+
+- `notes/step3_iep_iev_calculation.cpp`
 
 Predefine a function boundary now so the rest of the system can be built around it:
 
@@ -67,10 +71,17 @@ Possible return type:
 ```cpp
 struct IndicativeMatchResult {
   bool has_result;
-  std::uint64_t price;
+  Price price;
   std::uint64_t volume;
 };
 ```
+
+Current implementation notes:
+
+- `IssueState` keeps opening-eligible price-ladder state plus market-order totals
+- raw FLEX `Bn` prices are converted at `A` tag replay from fixed-point integer to real decimal price using four fractional digits
+- replay recalculates the rolling per-issue IEP/IEV after every `A`, `D`, `E`, or `C`
+- CLI CSV output is `symbol,iep,iev`
 
 ## Validation strategy
 
@@ -87,6 +98,18 @@ For step 2:
 - dump sample issue snapshots
 - verify order counts and price levels evolve sensibly
 
-For step 3 later:
+For step 3:
 
 - compare produced CSV against expected review samples if available
+- keep the fixture CSV artifact under `build/results/step3_fixture_results.csv`
+
+## Repository layout
+
+- `src/cli`: executable entrypoint
+- `src/app`: application orchestration and output
+- `src/ingest`: PCAP and network decoding
+- `src/flex`: FLEX parser
+- `src/book`: order book and indicative calculation
+- `tests`: synthetic unit tests and real-capture fixture regression
+- `docs`: assignment/protocol source material
+- `notes`: project memory and decisions

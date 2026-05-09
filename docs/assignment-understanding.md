@@ -12,7 +12,7 @@ This file is my Markdown restatement of the `Take home coding assignment.docx` d
 - The expected CSV format is:
 
 ```text
-symbol,iap,iav
+symbol,iep,iev
 ```
 
 ## README Expectations
@@ -42,7 +42,7 @@ I currently interpret the task this way:
 2. Parse FLEX MBO packet headers and tags.
 3. Maintain per-issue order-book state over time.
 4. Focus on auction-relevant state strongly enough to produce the final indicative open auction result for each stock.
-5. Export one CSV row per stock with symbol, indicative auction price, and indicative auction volume.
+5. Export one CSV row per stock with symbol, indicative equilibrium price, and indicative equilibrium volume.
 
 ## Verification Excerpts
 
@@ -56,9 +56,10 @@ These are the key lines I extracted from the source document and used for the in
 
 > For the given PCAP samples, please provide the last calculated indicative open auction match price and quantity/volume, for all stocks, in a csv file, in the format of "symbol, iap, iav"
 
+Project terminology note: the implementation uses `iep` and `iev` for the output columns because the code and calculation are named around indicative equilibrium price and volume.
+
 ## Things Still Not Explicit In The Word Document
 
 - whether packet ordering across multiple PCAP files is strictly file order or timestamp order
 - whether the two sample captures overlap or form adjacent parts of one trading day
 - the exact expected auction tie-break rules, which likely come from the exchange protocol or related public TSE rules rather than the Word document itself
-

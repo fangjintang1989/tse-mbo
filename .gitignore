@@ -1,6 +1,8 @@
 build/
 out/
 results/
+.agents/
+.codex/
 *.o
 *.obj
 *.exe

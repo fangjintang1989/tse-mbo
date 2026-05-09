@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -37,7 +36,7 @@ struct FlexPacketView {
 
 class FlexParser {
  public:
-  std::optional<FlexPacketView> parse(const UdpDatagramView& datagram) const;
+  std::vector<FlexPacketView> parse_all(const UdpDatagramView& datagram) const;
 
  private:
   static std::uint32_t read_be_u32(std::span<const std::byte> bytes);

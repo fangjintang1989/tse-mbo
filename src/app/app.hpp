@@ -10,6 +10,7 @@ namespace tse_mbo {
 struct AppConfig {
   std::vector<std::filesystem::path> pcap_paths;
   std::optional<std::filesystem::path> venue_json_path;
+  std::optional<std::filesystem::path> csv_output_path;
   bool summary_only = false;
 };
 

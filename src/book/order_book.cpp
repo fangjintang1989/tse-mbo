@@ -1,8 +1,19 @@
 #include "book/order_book.hpp"
 
+#include <algorithm>
 #include <bit>
 
+#include "book/indicative.hpp"
+
 namespace tse_mbo {
+
+namespace {
+
+bool is_opening_eligible_order_condition(std::uint8_t order_condition) noexcept {
+  return order_condition == 0U || order_condition == 2U;
+}
+
+}  // namespace
 
 void OrderBookReplayer::apply(const FlexPacketView& packet) {
   ++stats_.packets_seen;
@@ -22,6 +33,92 @@ const ReplayStats& OrderBookReplayer::stats() const noexcept {
   return stats_;
 }
 
+bool OrderBookReplayer::is_market_price(Price price) noexcept {
+  return price == kMarketOrderPrice;
+}
+
+bool OrderBookReplayer::is_opening_eligible(const Order& order) noexcept {
+  return is_opening_eligible_order_condition(order.order_condition);
+}
+
+void OrderBookReplayer::recalculate_issue_state(IssueState& issue_state) {
+  issue_state.last_indicative_match = calculate_indicative_match(issue_state);
+  if (issue_state.last_indicative_match.has_result) {
+    issue_state.previous_reference_price = issue_state.last_indicative_match.price;
+  }
+}
+
+void OrderBookReplayer::add_order_to_book(IssueState& issue_state, const Order& order) {
+  if (!is_opening_eligible(order) || order.quantity == 0) {
+    return;
+  }
+
+  if (is_market_price(order.price)) {
+    if (order.side == Side::buy) {
+      issue_state.market_bid_volume += order.quantity;
+    } else if (order.side == Side::sell) {
+      issue_state.market_ask_volume += order.quantity;
+    }
+    return;
+  }
+
+  auto& level = issue_state.limit_price_levels[order.price];
+  if (order.side == Side::buy) {
+    level.bid_volume += order.quantity;
+  } else if (order.side == Side::sell) {
+    level.ask_volume += order.quantity;
+  }
+}
+
+void OrderBookReplayer::remove_order_from_book(IssueState& issue_state,
+                                               const Order& order,
+                                               std::uint64_t quantity) {
+  if (!is_opening_eligible(order) || quantity == 0) {
+    return;
+  }
+
+  const std::uint64_t amount = std::min(quantity, order.quantity);
+  if (amount == 0) {
+    return;
+  }
+
+  if (is_market_price(order.price)) {
+    if (order.side == Side::buy) {
+      issue_state.market_bid_volume = issue_state.market_bid_volume > amount
+                                          ? issue_state.market_bid_volume - amount
+                                          : 0;
+    } else if (order.side == Side::sell) {
+      issue_state.market_ask_volume = issue_state.market_ask_volume > amount
+                                          ? issue_state.market_ask_volume - amount
+                                          : 0;
+    }
+    return;
+  }
+
+  const auto it = issue_state.limit_price_levels.find(order.price);
+  if (it == issue_state.limit_price_levels.end()) {
+    return;
+  }
+
+  auto& level = it->second;
+  if (order.side == Side::buy) {
+    level.bid_volume = level.bid_volume > amount ? level.bid_volume - amount : 0;
+  } else if (order.side == Side::sell) {
+    level.ask_volume = level.ask_volume > amount ? level.ask_volume - amount : 0;
+  }
+
+  if (level.bid_volume == 0 && level.ask_volume == 0) {
+    issue_state.limit_price_levels.erase(it);
+  }
+}
+
+Price OrderBookReplayer::decode_price(std::uint64_t raw_price) noexcept {
+  if (raw_price == kRawMarketOrderPrice) {
+    return kMarketOrderPrice;
+  }
+  return static_cast<Price>(raw_price) / kPriceScale;
+}
+
 void OrderBookReplayer::apply_tag(const FlexPacketHeader& header, const FlexTagView& tag) {
   if (tag.bytes.empty()) {
     return;
@@ -38,14 +135,23 @@ void OrderBookReplayer::apply_tag(const FlexPacketHeader& header, const FlexTagV
       if (tag.bytes.size() < 26) {
         return;
       }
+
       Order order;
       order.order_id = read_be_u32(tag.bytes, 5);
       order.side = parse_side(tag.bytes[9]);
       order.quantity = read_be_u48(tag.bytes, 10);
-      order.price = read_be_u64(tag.bytes, 16);
+      order.price = decode_price(read_be_u64(tag.bytes, 16));
       order.order_condition = std::to_integer<std::uint8_t>(tag.bytes[24]);
       order.modification_flag = std::to_integer<std::uint8_t>(tag.bytes[25]);
+
+      const auto existing = issue_state.live_orders.find(order.order_id);
+      if (existing != issue_state.live_orders.end()) {
+        remove_order_from_book(issue_state, existing->second, existing->second.quantity);
+      }
+
       issue_state.live_orders.insert_or_assign(order.order_id, order);
+      add_order_to_book(issue_state, order);
+      recalculate_issue_state(issue_state);
       return;
     }
     case 'D': {
@@ -53,8 +159,16 @@ void OrderBookReplayer::apply_tag(const FlexPacketHeader& header, const FlexTagV
       if (tag.bytes.size() < 11) {
         return;
       }
+
       const std::uint32_t order_id = read_be_u32(tag.bytes, 5);
-      issue_state.live_orders.erase(order_id);
+      const auto it = issue_state.live_orders.find(order_id);
+      if (it == issue_state.live_orders.end()) {
+        return;
+      }
+
+      remove_order_from_book(issue_state, it->second, it->second.quantity);
+      issue_state.live_orders.erase(it);
+      recalculate_issue_state(issue_state);
       return;
     }
     case 'E': {
@@ -62,17 +176,21 @@ void OrderBookReplayer::apply_tag(const FlexPacketHeader& header, const FlexTagV
       if (tag.bytes.size() < 20) {
         return;
       }
+
       const std::uint32_t order_id = read_be_u32(tag.bytes, 5);
       const std::uint64_t volume = read_be_u48(tag.bytes, 10);
       const auto it = issue_state.live_orders.find(order_id);
       if (it == issue_state.live_orders.end()) {
         return;
       }
+
+      remove_order_from_book(issue_state, it->second, volume);
       if (volume >= it->second.quantity) {
         issue_state.live_orders.erase(it);
       } else {
         it->second.quantity -= volume;
       }
+      recalculate_issue_state(issue_state);
       return;
     }
     case 'C': {
@@ -80,23 +198,32 @@ void OrderBookReplayer::apply_tag(const FlexPacketHeader& header, const FlexTagV
       if (tag.bytes.size() < 29) {
         return;
       }
+
       const std::uint32_t order_id = read_be_u32(tag.bytes, 5);
       const std::uint64_t volume = read_be_u48(tag.bytes, 10);
       const auto it = issue_state.live_orders.find(order_id);
       if (it == issue_state.live_orders.end()) {
         return;
       }
+
+      remove_order_from_book(issue_state, it->second, volume);
       if (volume >= it->second.quantity) {
         issue_state.live_orders.erase(it);
       } else {
         it->second.quantity -= volume;
       }
+      recalculate_issue_state(issue_state);
       return;
     }
     case 'R': {
       ++stats_.reset_tags;
       for (auto& [_, state] : issues_) {
         state.live_orders.clear();
+        state.limit_price_levels.clear();
+        state.market_bid_volume = 0;
+        state.market_ask_volume = 0;
+        state.previous_reference_price.reset();
+        state.last_indicative_match = {};
       }
       return;
     }
