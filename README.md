@@ -94,13 +94,48 @@ Fixture result artifact:
 
 PCAP-to-output breakdown:
 
-1. Step 1 decodes `343` unique issue codes from both PCAP files.
-2. Step 2 replays all `343` issue codes into order-book state, including non-stock instruments.
-3. The assignment asks for stocks only. Using the venue JSON rule `securityType=01-04`, `304` of the `343` issue codes are stocks.
-4. The remaining `39` issue codes are replayed but filtered out of the assignment CSV because they are not stock security types.
-5. The final assignment CSV therefore has `304` stock rows.
-6. Of those `304` stock rows, `273` have executable auction volume, so `iav > 0`.
-7. The other `31` stock rows are present but have no executable auction volume in this capture, so their output is `iap=0.0000,iav=0` or `iav=0`.
+```text
+20241105_051.test.pcap.gz: 171 issue codes
+20241105_052.test.pcap.gz: 172 issue codes
+Overlap between files: 0 issue codes
+        |
+        v
+PCAP decoded issue codes: 343 total
+        |
+        v
+Order-book replay: all 343 issue codes
+        |
+        +--> Non-stock issue codes: 39
+        |    Replayed for audit, excluded from assignment CSV
+        |
+        v
+Stock issue codes by venue JSON securityType 01-04: 304
+        |
+        +--> iav > 0: 273 rows
+        |
+        +--> iav = 0: 31 rows
+```
+
+| Stage | Count | What It Means |
+| --- | ---: | --- |
+| `20241105_051.test.pcap.gz` issue codes | 171 | First multicast-group capture partition. |
+| `20241105_052.test.pcap.gz` issue codes | 172 | Second multicast-group capture partition. |
+| Overlap between PCAP files | 0 | The files cover different symbols in the same time window. |
+| PCAP decoded issue codes | 343 | Unique symbols found across both captures. |
+| Replayed issue codes | 343 | Every decoded symbol is applied to order-book state. |
+| Non-stock issue codes | 39 | Replayed but excluded from assignment CSV because `securityType` is not `01-04`. |
+| Final stock CSV rows | 304 | Assignment output scope after applying the stock filter. |
+| Stock rows with `iav > 0` | 273 | A non-zero executable auction volume exists. |
+| Stock rows with `iav = 0` | 31 | Symbol is included, but no executable auction volume exists in this capture. |
+
+Both the production CLI and fixture test process every supplied PCAP path. In the normal sample run, `--pcap ../20241105_051.test.pcap.gz --pcap ../20241105_052.test.pcap.gz` means both files are decoded and replayed into the same final order-book state.
+
+Per-capture details:
+
+| PCAP | Time Range JST | Endpoint | Decoded FLEX Tag Rows | Issue Codes | Main Tags |
+| --- | --- | --- | ---: | ---: | --- |
+| `20241105_051.test.pcap.gz` | `07:10:00.448099196` to `08:59:59.999866426` | `10.17.13.58:51551 -> 224.0.220.51:51551` | 193,618 | 171 | `T=94,790`, `A=86,998`, `D=11,548`, `O=171`, `L=111` |
+| `20241105_052.test.pcap.gz` | `07:10:00.448123490` to `08:59:59.999985828` | `10.17.13.68:51552 -> 224.0.220.52:51552` | 236,912 | 172 | `T=115,978`, `A=101,938`, `D=18,713`, `O=172`, `L=111` |
 
 For debug only, an all-issues CSV can be generated without the venue filter. That file has `343` rows: `304` with executable auction volume and `39` with zero executable auction volume.
 
