@@ -52,13 +52,13 @@ Expected internal types:
 - `OrderBook`
 - `IssueState`
 
-## Step 3: IEP/IEV calculation
+## Step 3: IAP/IAV calculation
 
 Implemented using the screenshot-derived rule.
 
 Readable extracted note:
 
-- `notes/step3_iep_iev_calculation.cpp`
+- `notes/step3_iap_iav_calculation.cpp`
 
 Predefine a function boundary now so the rest of the system can be built around it:
 
@@ -80,8 +80,8 @@ Current implementation notes:
 
 - `IssueState` keeps opening-eligible price-ladder state plus market-order totals
 - raw FLEX `Bn` prices are converted at `A` tag replay from fixed-point integer to real decimal price using four fractional digits
-- replay recalculates the rolling per-issue IEP/IEV after every `A`, `D`, `E`, or `C`
-- CLI CSV output is `symbol,iep,iev`
+- replay recalculates the rolling per-issue IAP/IAV after every `A`, `D`, `E`, or `C`
+- CLI CSV output is `symbol,iap,iav`
 
 ## Validation strategy
 
@@ -101,7 +101,7 @@ For step 2:
 For step 3:
 
 - compare produced CSV against expected review samples if available
-- keep the fixture CSV artifact under `build/results/step3_fixture_results.csv`
+- keep the fixture CSV artifact under `build/results/step3_iap_iav_fixture_results.csv`
 
 ## Repository layout
 

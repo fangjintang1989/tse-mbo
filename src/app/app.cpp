@@ -119,7 +119,7 @@ std::vector<CsvRow> build_csv_rows(const OrderBookReplayer& replayer, const Venu
 }
 
 void write_csv(std::ostream& out, const std::vector<CsvRow>& rows) {
-  out << "symbol,iep,iev\n";
+  out << "symbol,iap,iav\n";
   for (const auto& row : rows) {
     out << row.symbol << ',';
     if (row.result.has_result) {

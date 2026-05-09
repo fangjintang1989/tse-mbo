@@ -40,7 +40,7 @@ The original runtime inputs currently live in the parent workspace:
 - `src/book/` contains order-book replay and indicative calculation.
 - `tests/` contains synthetic unit coverage and real-capture fixture regression coverage.
 - `docs/` contains the original assignment/protocol files and extracted summaries.
-- `notes/` contains working decisions, assumptions, open questions, and the readable IEP/IEV calculation note.
+- `notes/` contains working decisions, assumptions, open questions, and the readable IAP/IAV calculation note.
 
 ```text
 src/
@@ -86,8 +86,31 @@ Test layout:
 Fixture result artifact:
 
 - `build/results/step1_fixture_report.txt` with counts, endpoints, sample datagrams, and per-capture `issue_code -> venue name` mappings
-- `build/results/step3_fixture_results.csv` with per-stock `symbol,iep,iev` output derived from the sample captures
-- `build/results/iep_iev_audit.csv` with final per-price audit rows using `bid_price`, `bid_volume`, `ask_price`, `ask_volume`, `cum_bid`, `cum_ask`, `tip_up`, and `tip_down`; the `selected=yes` row explains the final IEP/IEV for a symbol
+- `build/results/step1_decoded_messages.csv` with one row per decoded FLEX tag from the PCAPs
+- `build/results/step3_iap_iav_fixture_results.csv` with per-stock `symbol,iap,iav` output derived from the sample captures
+- `build/results/iap_iav_audit.csv` with final per-price audit rows using `bid_price`, `bid_volume`, `ask_price`, `ask_volume`, `cum_bid`, `cum_ask`, `tip_up`, and `tip_down`; the `selected=yes` row explains the final IAP/IAV for a symbol
+- `build/results/step1_step2_order_book_check.txt` and `build/results/step1_step2_order_book_mismatches.csv` from the independent step1-to-step2 replay checker
+- `build/results/symbol_1382_order_book_trace.csv` and `build/results/symbol_1382_order_book_trace_summary.txt` from the per-symbol order-by-order trace checker
+
+PCAP summary:
+
+| Scope | Count |
+| --- | ---: |
+| Unique issue codes seen in PCAPs | 343 |
+| Security type `01-04` issue codes | 304 |
+| Non-stock issue codes filtered from the stock CSV | 39 |
+| Final stock CSV rows with IAP/IAV result | 273 |
+| Final stock CSV rows with no IAP/IAV result | 31 |
+| Final all-issues CSV rows with IAP/IAV result | 304 |
+| Final all-issues CSV rows with no IAP/IAV result | 39 |
+
+The assignment text says stocks are security types `1-4`, so issue codes like `1570` with `securityType=B1` are intentionally excluded from the stock-only CSV even though they are still replayed and traced in the order-book logic.
+
+Filtered examples:
+
+- Step 1 to book trace ignores non-book FLEX rows such as `T`, `O`, and `L` because they do not change the order book state.
+- Stock CSV filtering removes non-stock issue codes such as `1570`, `1475`, and `1541` because their venue `securityType` is not `01-04` (`1570` is `B1`).
+- Final stock CSV rows can still have no IAP/IAV result even for stock issues; examples are `1452`, `152A`, `154A`, and `1770`, which replay but end with zero executable auction volume in the current data.
 
 ## Run
 
@@ -108,7 +131,7 @@ CSV output run:
   --pcap ../20241105_051.test.pcap.gz \
   --pcap ../20241105_052.test.pcap.gz \
   --venue-json ../TseVenue.20241105.json \
-  --csv-out build/results/indicative_results.csv \
+  --csv-out build/results/iap_iav_results.csv \
   --summary-only
 ```
 
@@ -129,7 +152,7 @@ The assignment is being implemented in three stages:
 2. replay parsed messages into an order book
 3. calculate indicative match price and volume
 
-This repo currently implements all three stages, including rolling IEP/IEV calculation and CSV export in `src/book/indicative.*`.
+This repo currently implements all three stages, including rolling IAP/IAV calculation and CSV export in `src/book/indicative.*`.
 
 ## Current Status
 
@@ -144,7 +167,7 @@ Implemented:
 - FLEX `Bn` prices decoded from raw fixed-point integers into real decimal prices at the replay boundary
 - opening-eligible price-ladder reconstruction, including market-order aggregation
 - rolling indicative opening price/volume calculation using the screenshot-derived rule
-- venue-filtered CSV export in `symbol,iep,iev` format
+- venue-filtered CSV export in `symbol,iap,iav` format
 
 Not implemented yet:
 
@@ -160,7 +183,7 @@ Not implemented yet:
 - A single UDP payload may contain multiple FLEX packets back-to-back; the parser handles this case.
 - Order-book replay is implemented for `A`, `D`, `E`, `C`, and `R`, but protocol coverage is not yet complete for every tag type.
 - FLEX price fields are decoded once when `A` tags are replayed: the unsigned wire integer uses four decimal places, so raw `17770000` becomes real price `1777.0000`; market-order max price is kept as an internal sentinel and excluded from the limit-price ladder.
-- Step 3 currently uses the screenshot-derived IEP/IEV rule captured in `notes/step3_iep_iev_calculation.cpp`.
+- Step 3 currently uses the screenshot-derived IAP/IAV rule captured in `notes/step3_iap_iav_calculation.cpp`.
 
 ## Notes
 

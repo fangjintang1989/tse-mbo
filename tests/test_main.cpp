@@ -429,7 +429,7 @@ void test_indicative_match_supports_market_orders() {
 
   expect(result.has_result, "Market orders should still allow a match");
   expect_price(result.price, 20.0, "The single candidate price should be selected");
-  expect(result.volume == 20, "Market orders should contribute to IEV");
+  expect(result.volume == 20, "Market orders should contribute to IAV");
 }
 
 void test_indicative_match_uses_direction_reversal_tie_break() {

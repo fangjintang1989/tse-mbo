@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cerrno>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -24,7 +25,7 @@
 #include "flex/flex_parser.hpp"
 #include "ingest/network_decoder.hpp"
 #include "ingest/pcap_reader.hpp"
-#include "audit/iep_iev_audit.hpp"
+#include "audit/iap_iav_audit.hpp"
 
 namespace {
 
@@ -57,6 +58,25 @@ std::string format_endpoint(const UdpDatagramView& datagram) {
   return out.str();
 }
 
+void write_csv_escaped(std::ostream& out, std::string_view value) {
+  const bool needs_quotes =
+      value.find_first_of(",\"\n\r") != std::string_view::npos;
+  if (!needs_quotes) {
+    out << value;
+    return;
+  }
+
+  out << '"';
+  for (const char ch : value) {
+    if (ch == '"') {
+      out << "\"\"";
+    } else {
+      out << ch;
+    }
+  }
+  out << '"';
+}
+
 std::string format_tag_hex(const std::vector<std::byte>& bytes) {
   std::ostringstream out;
   out << std::hex << std::setfill('0');
@@ -68,6 +88,130 @@ std::string format_tag_hex(const std::vector<std::byte>& bytes) {
         << static_cast<unsigned int>(std::to_integer<unsigned char>(bytes[index]));
   }
   return out.str();
+}
+
+std::uint32_t read_be_u32(const std::vector<std::byte>& bytes, std::size_t offset) {
+  return (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset])) << 24U) |
+         (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset + 1])) << 16U) |
+         (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset + 2])) << 8U) |
+         static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset + 3]));
+}
+
+std::uint64_t read_be_u48(const std::vector<std::byte>& bytes, std::size_t offset) {
+  return (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset])) << 40U) |
+         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 1])) << 32U) |
+         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 2])) << 24U) |
+         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 3])) << 16U) |
+         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 4])) << 8U) |
+         static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 5]));
+}
+
+std::uint64_t read_be_u64(const std::vector<std::byte>& bytes, std::size_t offset) {
+  return (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset])) << 56U) |
+         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 1])) << 48U) |
+         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 2])) << 40U) |
+         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 3])) << 32U) |
+         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 4])) << 24U) |
+         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 5])) << 16U) |
+         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 6])) << 8U) |
+         static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 7]));
+}
+
+std::string format_price(std::uint64_t raw_price) {
+  if (raw_price == tse_mbo::kRawMarketOrderPrice) {
+    return "MARKET";
+  }
+
+  std::ostringstream out;
+  out << std::fixed << std::setprecision(4)
+      << (static_cast<tse_mbo::Price>(raw_price) / tse_mbo::kPriceScale);
+  return out.str();
+}
+
+struct CaptureTimestamp {
+  std::uint32_t sec = 0;
+  std::uint32_t nsec = 0;
+};
+
+int compare_timestamp(const CaptureTimestamp& lhs, const CaptureTimestamp& rhs) {
+  if (lhs.sec < rhs.sec) {
+    return -1;
+  }
+  if (lhs.sec > rhs.sec) {
+    return 1;
+  }
+  if (lhs.nsec < rhs.nsec) {
+    return -1;
+  }
+  if (lhs.nsec > rhs.nsec) {
+    return 1;
+  }
+  return 0;
+}
+
+std::string format_epoch_nsec(const CaptureTimestamp& timestamp) {
+  std::ostringstream out;
+  out << timestamp.sec << '.' << std::setw(9) << std::setfill('0') << timestamp.nsec;
+  return out.str();
+}
+
+std::string format_utc_or_jst(const CaptureTimestamp& timestamp, int hour_offset) {
+  const std::time_t adjusted_sec =
+      static_cast<std::time_t>(timestamp.sec) + static_cast<std::time_t>(hour_offset) * 3600;
+  std::tm time_parts{};
+  if (const auto* utc_time = std::gmtime(&adjusted_sec)) {
+    time_parts = *utc_time;
+  }
+
+  std::ostringstream out;
+  out << std::put_time(&time_parts, "%Y-%m-%dT%H:%M:%S")
+      << '.' << std::setw(9) << std::setfill('0') << timestamp.nsec
+      << (hour_offset == 0 ? "Z" : "+09:00");
+  return out.str();
+}
+
+std::uint64_t elapsed_nsec(const CaptureTimestamp& start, const CaptureTimestamp& end) {
+  const auto sec_delta = static_cast<std::uint64_t>(end.sec - start.sec);
+  if (end.nsec >= start.nsec) {
+    return sec_delta * 1000000000ULL + static_cast<std::uint64_t>(end.nsec - start.nsec);
+  }
+  return (sec_delta - 1U) * 1000000000ULL +
+         (1000000000ULL + static_cast<std::uint64_t>(end.nsec) - start.nsec);
+}
+
+std::string format_elapsed_nsec(std::uint64_t elapsed) {
+  std::ostringstream out;
+  out << (elapsed / 1000000000ULL) << '.'
+      << std::setw(9) << std::setfill('0') << (elapsed % 1000000000ULL)
+      << "s";
+  return out.str();
+}
+
+struct CaptureTimeRange {
+  bool has_value = false;
+  CaptureTimestamp first;
+  CaptureTimestamp last;
+  CaptureTimestamp min;
+  CaptureTimestamp max;
+};
+
+void update_capture_time_range(CaptureTimeRange& range, CaptureTimestamp timestamp) {
+  if (!range.has_value) {
+    range.has_value = true;
+    range.first = timestamp;
+    range.last = timestamp;
+    range.min = timestamp;
+    range.max = timestamp;
+    return;
+  }
+
+  range.last = timestamp;
+  if (compare_timestamp(timestamp, range.min) < 0) {
+    range.min = timestamp;
+  }
+  if (compare_timestamp(timestamp, range.max) > 0) {
+    range.max = timestamp;
+  }
 }
 
 bool is_issue_name_padding(std::uint32_t code_unit) {
@@ -227,10 +371,12 @@ std::string lookup_issue_name(const VenueCatalog& catalog, const std::string& is
 struct FixtureStats {
   std::uint64_t capture_records = 0;
   std::uint64_t udp_datagrams = 0;
+  std::uint64_t decoded_message_rows = 0;
   std::map<char, std::uint64_t> tag_counts;
   std::map<std::string, std::uint64_t> endpoint_counts;
   std::map<std::string, std::uint64_t> issue_packet_counts;
   std::map<std::string, std::map<std::string, std::uint64_t>> issue_packet_counts_by_file;
+  std::map<std::string, CaptureTimeRange> capture_time_ranges_by_file;
   std::vector<std::string> sample_lines;
   std::size_t sampled_datagrams = 0;
 };
@@ -314,8 +460,82 @@ std::vector<IndicativeRow> build_indicative_rows(const OrderBookReplayer& replay
   return rows;
 }
 
+void write_step1_decoded_messages_header(std::ostream& out) {
+  out << "file,record_index,capture_epoch_nsec,capture_utc,capture_jst,endpoint,"
+         "payload_bytes,flex_packet_index,sequence_number,issue_code,update_number,"
+         "packet_number,total_packets,utility_flag,message_count,tag_index,tag_type,"
+         "tag_length,order_id,side,quantity,raw_price,price,order_condition,"
+         "modification_flag,executed_quantity,tag_hex\n";
+}
+
+void write_step1_decoded_message_row(std::ostream& out,
+                                     const std::filesystem::path& pcap_path,
+                                     std::size_t record_index,
+                                     const UdpDatagramView& datagram,
+                                     std::size_t packet_index,
+                                     const FlexPacketView& packet,
+                                     std::size_t tag_index,
+                                     const tse_mbo::FlexTagView& tag) {
+  const CaptureTimestamp timestamp{datagram.capture_ts_sec, datagram.capture_ts_subsec};
+
+  std::string order_id;
+  std::string side;
+  std::string quantity;
+  std::string raw_price;
+  std::string price;
+  std::string order_condition;
+  std::string modification_flag;
+  std::string executed_quantity;
+
+  if (tag.message_type == 'A' && tag.bytes.size() >= 26) {
+    const auto decoded_raw_price = read_be_u64(tag.bytes, 16);
+    order_id = std::to_string(read_be_u32(tag.bytes, 5));
+    side.push_back(static_cast<char>(std::to_integer<std::uint8_t>(tag.bytes[9])));
+    quantity = std::to_string(read_be_u48(tag.bytes, 10));
+    raw_price = std::to_string(decoded_raw_price);
+    price = format_price(decoded_raw_price);
+    order_condition = std::to_string(std::to_integer<std::uint8_t>(tag.bytes[24]));
+    modification_flag = std::to_string(std::to_integer<std::uint8_t>(tag.bytes[25]));
+  } else if (tag.message_type == 'D' && tag.bytes.size() >= 11) {
+    order_id = std::to_string(read_be_u32(tag.bytes, 5));
+  } else if ((tag.message_type == 'E' || tag.message_type == 'C') && tag.bytes.size() >= 20) {
+    order_id = std::to_string(read_be_u32(tag.bytes, 5));
+    executed_quantity = std::to_string(read_be_u48(tag.bytes, 10));
+  }
+
+  out << pcap_path.filename().string() << ','
+      << record_index << ','
+      << format_epoch_nsec(timestamp) << ','
+      << format_utc_or_jst(timestamp, 0) << ','
+      << format_utc_or_jst(timestamp, 9) << ',';
+  write_csv_escaped(out, format_endpoint(datagram));
+  out << ',' << datagram.payload.size() << ','
+      << (packet_index + 1U) << ','
+      << packet.header.sequence_number << ','
+      << (packet.header.issue_code.empty() ? "<control>" : packet.header.issue_code) << ','
+      << packet.header.update_number << ','
+      << static_cast<unsigned int>(packet.header.packet_number) << ','
+      << static_cast<unsigned int>(packet.header.total_number_of_packets) << ','
+      << static_cast<unsigned int>(packet.header.utility_flag) << ','
+      << static_cast<unsigned int>(packet.header.message_count) << ','
+      << (tag_index + 1U) << ','
+      << tag.message_type << ','
+      << static_cast<unsigned int>(tag.length) << ','
+      << order_id << ','
+      << side << ','
+      << quantity << ','
+      << raw_price << ','
+      << price << ','
+      << order_condition << ','
+      << modification_flag << ','
+      << executed_quantity << ',';
+  write_csv_escaped(out, format_tag_hex(tag.bytes));
+  out << '\n';
+}
+
 FixtureStats inspect_fixture_inputs(const std::vector<std::filesystem::path>& pcap_paths,
-                                    OrderBookReplayer& replayer) {
+                                    OrderBookReplayer& replayer,
+                                    std::ostream* step1_decoded_messages_csv) {
   PcapReader pcap_reader;
   NetworkDecoder network_decoder;
   FlexParser flex_parser;
@@ -332,20 +552,31 @@ FixtureStats inspect_fixture_inputs(const std::vector<std::filesystem::path>& pc
         continue;
       }
 
+      const auto file_name = pcap_path.filename().string();
+      update_capture_time_range(
+          stats.capture_time_ranges_by_file[file_name],
+          CaptureTimestamp{datagram->capture_ts_sec, datagram->capture_ts_subsec});
       ++stats.udp_datagrams;
       ++stats.endpoint_counts[format_endpoint(*datagram)];
 
       const auto packets = flex_parser.parse_all(*datagram);
       append_sample_lines(stats, pcap_path, record_index + 1U, *datagram, packets);
 
-      const auto file_name = pcap_path.filename().string();
-      for (const auto& packet : packets) {
+      for (std::size_t packet_index = 0; packet_index < packets.size(); ++packet_index) {
+        const auto& packet = packets[packet_index];
         if (!packet.header.issue_code.empty()) {
           ++stats.issue_packet_counts[packet.header.issue_code];
           ++stats.issue_packet_counts_by_file[file_name][packet.header.issue_code];
         }
-        for (const auto& tag : packet.tags) {
+        for (std::size_t tag_index = 0; tag_index < packet.tags.size(); ++tag_index) {
+          const auto& tag = packet.tags[tag_index];
           ++stats.tag_counts[tag.message_type];
+          ++stats.decoded_message_rows;
+          if (step1_decoded_messages_csv != nullptr) {
+            write_step1_decoded_message_row(
+                *step1_decoded_messages_csv, pcap_path, record_index + 1U, *datagram,
+                packet_index, packet, tag_index, tag);
+          }
         }
         replayer.apply(packet);
       }
@@ -403,7 +634,28 @@ std::filesystem::path write_fixture_report(const FixtureStats& fixture_stats,
   out << "  udp_datagrams=" << fixture_stats.udp_datagrams << "\n";
   out << "  flex_packets=" << replay_stats.packets_parsed << "\n";
   out << "  tags_seen=" << replay_stats.tags_seen << "\n";
+  out << "  decoded_message_rows=" << fixture_stats.decoded_message_rows << "\n";
   out << "  issues_tracked=" << issues_tracked << "\n";
+
+  out << "\n";
+  out << "capture_time_ranges:\n";
+  out << "  precision=nanoseconds\n";
+  out << "  timezone_note=pcap timestamps are stored as epoch UTC; JST is UTC+09:00\n";
+  for (const auto& [file_name, range] : fixture_stats.capture_time_ranges_by_file) {
+    if (!range.has_value) {
+      continue;
+    }
+    out << "  " << file_name << ":\n";
+    out << "    first_epoch_nsec=" << format_epoch_nsec(range.first) << "\n";
+    out << "    first_utc=" << format_utc_or_jst(range.first, 0) << "\n";
+    out << "    first_jst=" << format_utc_or_jst(range.first, 9) << "\n";
+    out << "    last_epoch_nsec=" << format_epoch_nsec(range.last) << "\n";
+    out << "    last_utc=" << format_utc_or_jst(range.last, 0) << "\n";
+    out << "    last_jst=" << format_utc_or_jst(range.last, 9) << "\n";
+    out << "    min_epoch_nsec=" << format_epoch_nsec(range.min) << "\n";
+    out << "    max_epoch_nsec=" << format_epoch_nsec(range.max) << "\n";
+    out << "    elapsed=" << format_elapsed_nsec(elapsed_nsec(range.min, range.max)) << "\n";
+  }
 
   out << "\n";
   out << "tag_counts:\n";
@@ -467,13 +719,13 @@ std::filesystem::path write_indicative_csv(const std::filesystem::path& results_
                                            const std::vector<IndicativeRow>& indicative_rows) {
   std::filesystem::create_directories(results_dir);
 
-  const auto csv_path = results_dir / "step3_fixture_results.csv";
+  const auto csv_path = results_dir / "step3_iap_iav_fixture_results.csv";
   std::ofstream out(csv_path, std::ios::out | std::ios::trunc);
   if (!out.is_open()) {
     throw std::runtime_error("Failed to create indicative CSV");
   }
 
-  out << "symbol,iep,iev\n";
+  out << "symbol,iap,iav\n";
   for (const auto& row : indicative_rows) {
     out << row.issue_code << ',';
     if (row.result.has_result) {
@@ -500,7 +752,7 @@ std::filesystem::path write_indicative_audit_csv(const std::filesystem::path& re
     issue_codes.push_back(row.issue_code);
   }
 
-  const auto csv_path = results_dir / "iep_iev_audit.csv";
+  const auto csv_path = results_dir / "iap_iav_audit.csv";
   std::ofstream out(csv_path, std::ios::out | std::ios::trunc);
   if (!out.is_open()) {
     throw std::runtime_error("Failed to create indicative audit CSV");
@@ -528,12 +780,22 @@ int main() {
 
     const auto venue_catalog = load_venue_catalog(venue_json_path);
     OrderBookReplayer replayer;
-    const auto fixture_stats = inspect_fixture_inputs(pcap_paths, replayer);
+    const std::filesystem::path results_dir{TSE_MBO_RESULTS_DIR};
+    std::filesystem::create_directories(results_dir);
+    const auto step1_decoded_csv_path = results_dir / "step1_decoded_messages.csv";
+    std::ofstream step1_decoded_csv(step1_decoded_csv_path, std::ios::out | std::ios::trunc);
+    if (!step1_decoded_csv.is_open()) {
+      throw std::runtime_error("Failed to create step 1 decoded messages CSV");
+    }
+    write_step1_decoded_messages_header(step1_decoded_csv);
+
+    const auto fixture_stats = inspect_fixture_inputs(pcap_paths, replayer, &step1_decoded_csv);
+    step1_decoded_csv.close();
     const auto& replay_stats = replayer.stats();
     const auto indicative_rows = build_indicative_rows(replayer, venue_catalog);
-    const auto csv_path = write_indicative_csv(std::filesystem::path{TSE_MBO_RESULTS_DIR}, indicative_rows);
+    const auto csv_path = write_indicative_csv(results_dir, indicative_rows);
     const auto audit_csv_path = write_indicative_audit_csv(
-        std::filesystem::path{TSE_MBO_RESULTS_DIR}, indicative_rows, replayer, venue_catalog);
+        results_dir, indicative_rows, replayer, venue_catalog);
     const auto report_path = write_fixture_report(
         fixture_stats, venue_catalog, replay_stats, indicative_rows, replayer.issues().size(), pcap_paths);
 
@@ -541,6 +803,8 @@ int main() {
     expect(fixture_stats.udp_datagrams == 210990, "Unexpected UDP datagram count");
     expect(replay_stats.packets_parsed == 210990, "Unexpected FLEX packet count");
     expect(replay_stats.tags_seen == 430530, "Unexpected total tag count");
+    expect(fixture_stats.decoded_message_rows == replay_stats.tags_seen,
+           "Step 1 decoded CSV should contain one row per parsed FLEX tag");
     expect(replay_stats.add_tags == 188936, "Unexpected add tag count");
     expect(replay_stats.delete_tags == 30261, "Unexpected delete tag count");
     expect(replay_stats.executed_tags == 0, "Unexpected executed tag count");
@@ -566,6 +830,7 @@ int main() {
     expect(lookup_issue_name(venue_catalog, "1570") != "<missing venue name>",
            "Expected venue mapping for issue 1570");
 
+    std::cout << "Step 1 decoded messages CSV written to " << step1_decoded_csv_path << "\n";
     std::cout << "Fixture report written to " << report_path << "\n";
     std::cout << "Indicative CSV written to " << csv_path << "\n";
     std::cout << "Indicative audit CSV written to " << audit_csv_path << "\n";

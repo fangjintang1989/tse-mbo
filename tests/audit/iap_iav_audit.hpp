@@ -94,7 +94,7 @@ inline void write_indicative_audit_csv(
     const std::unordered_map<std::string, IssueState>& issues,
     const std::map<std::string, std::string>& issue_names) {
   out << "symbol,issue_name,selected,price,bid_price,bid_volume,ask_price,ask_volume,"
-         "cum_bid,cum_ask,tip_up,tip_down,iep,iev,market_bid_volume,market_ask_volume,"
+         "cum_bid,cum_ask,tip_up,tip_down,iap,iav,market_bid_volume,market_ask_volume,"
          "live_orders,last_sequence,last_update\n";
 
   for (const auto& issue_code : issue_codes) {

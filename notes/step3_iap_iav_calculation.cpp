@@ -1,4 +1,4 @@
-// Step 3 IEP/IEV reference note.
+// Step 3 IAP/IAV reference note.
 // This is the cleaned, in-repo version of the screenshot transcription.
 // The raw transcription now lives outside the repo in /home/jason/iep_pic/.
 
@@ -28,9 +28,9 @@
 // 4. Compute:
 //    tip_up = cum_ask - cum_bid + bid_volume
 //    tip_down = cum_bid - cum_ask + ask_volume
-// 5. If both tips are positive, accept the current price as IEP.
-// 6. Set IEV = min(cum_bid, cum_ask).
+// 5. If both tips are positive, accept the current price as IAP.
+// 6. Set IAV = min(cum_bid, cum_ask).
 // 7. If the search direction reverses, keep the closer candidate by comparing
 //    abs(previous_tip_up + previous_tip_down) with abs(tip_up + tip_down).
 // 8. If the search hits the beginning or end of the price ladder, return the
-//    current price and IEV.
+//    current price and IAV.

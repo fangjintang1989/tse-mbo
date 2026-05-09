@@ -10,9 +10,9 @@ The work is split into 3 steps:
 
 1. get PCAP data into a usable decoded stream
 2. parse the decoded feed into an order book
-3. calculate indicative equilibrium price and volume (IEP/IEV)
+3. calculate indicative auction price and volume (IAP/IAV)
 
-Step 3 now uses the screenshot-derived IEP/IEV rule captured in `notes/step3_iep_iev_calculation.cpp`.
+Step 3 now uses the screenshot-derived IAP/IAV rule captured in `notes/step3_iap_iav_calculation.cpp`.
 
 ## Current implementation direction
 
@@ -22,7 +22,7 @@ Source code is organized under a single `src/` root:
 - `src/app`: orchestration, arguments, and output
 - `src/ingest`: PCAP and network decoding
 - `src/flex`: FLEX packet parsing
-- `src/book`: order-book replay and IEP/IEV calculation
+- `src/book`: order-book replay and IAP/IAV calculation
 
 The code now supports:
 
@@ -30,7 +30,7 @@ The code now supports:
 - decoding Ethernet, IPv4, UDP, and FLEX payloads
 - parsing packet headers and tag records
 - replaying order-book-relevant tags into per-issue state
-- maintaining opening-eligible per-issue ladder state and a rolling IEP/IEV result
+- maintaining opening-eligible per-issue ladder state and a rolling IAP/IAV result
 - exposing `calculate_indicative_match(const IssueState&)` as the step 3 calculation boundary
 
 ## Input files currently available
@@ -54,4 +54,4 @@ Current implemented scope:
 
 - step 1: packet ingestion
 - step 2: order-book reconstruction
-- step 3: rolling IEP/IEV calculation and CSV export
+- step 3: rolling IAP/IAV calculation and CSV export

@@ -12,7 +12,7 @@ This file is my Markdown restatement of the `Take home coding assignment.docx` d
 - The expected CSV format is:
 
 ```text
-symbol,iep,iev
+symbol,iap,iav
 ```
 
 ## README Expectations
@@ -56,7 +56,9 @@ These are the key lines I extracted from the source document and used for the in
 
 > For the given PCAP samples, please provide the last calculated indicative open auction match price and quantity/volume, for all stocks, in a csv file, in the format of "symbol, iap, iav"
 
-Project terminology note: the implementation uses `iep` and `iev` for the output columns because the code and calculation are named around indicative equilibrium price and volume.
+Project terminology note: the assignment output columns are `iap` and `iav`; internal code still uses generic indicative match naming.
+
+Filtering note: the sample venue JSON marks stocks as security types `01-04`. Other captured issue codes, including `1570` with `securityType=B1`, are replayed but excluded from the stock-only CSV output.
 
 ## Things Still Not Explicit In The Word Document
 

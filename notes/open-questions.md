@@ -4,7 +4,7 @@
 
 - Do the provided PCAPs start from a clean enough state to reconstruct full books without a separate snapshot bootstrap?
 - Are `II`, `BP`, or `MG` required for correctness in the provided samples?
-- Does the current screenshot-derived IEP/IEV rule fully match the reviewer’s expected opening-auction rule in all edge cases?
+- Does the current screenshot-derived IAP/IAV rule fully match the reviewer’s expected opening-auction rule in all edge cases?
 
 ## Technical
 
