@@ -92,17 +92,17 @@ Fixture result artifact:
 - `build/results/step1_step2_order_book_check.txt` and `build/results/step1_step2_order_book_mismatches.csv` from the independent step1-to-step2 replay checker
 - `build/results/symbol_1382_order_book_trace.csv` and `build/results/symbol_1382_order_book_trace_summary.txt` from the per-symbol order-by-order trace checker
 
-PCAP summary:
+PCAP-to-output breakdown:
 
-| Scope | Count |
-| --- | ---: |
-| Unique issue codes seen in PCAPs | 343 |
-| Security type `01-04` issue codes | 304 |
-| Non-stock issue codes filtered from the stock CSV | 39 |
-| Final stock CSV rows with IAP/IAV result | 273 |
-| Final stock CSV rows with no IAP/IAV result | 31 |
-| Final all-issues CSV rows with IAP/IAV result | 304 |
-| Final all-issues CSV rows with no IAP/IAV result | 39 |
+1. Step 1 decodes `343` unique issue codes from both PCAP files.
+2. Step 2 replays all `343` issue codes into order-book state, including non-stock instruments.
+3. The assignment asks for stocks only. Using the venue JSON rule `securityType=01-04`, `304` of the `343` issue codes are stocks.
+4. The remaining `39` issue codes are replayed but filtered out of the assignment CSV because they are not stock security types.
+5. The final assignment CSV therefore has `304` stock rows.
+6. Of those `304` stock rows, `273` have executable auction volume, so `iav > 0`.
+7. The other `31` stock rows are present but have no executable auction volume in this capture, so their output is `iap=0.0000,iav=0` or `iav=0`.
+
+For debug only, an all-issues CSV can be generated without the venue filter. That file has `343` rows: `304` with executable auction volume and `39` with zero executable auction volume.
 
 The assignment text says stocks are security types `1-4`, so issue codes like `1570` with `securityType=B1` are intentionally excluded from the stock-only CSV even though they are still replayed and traced in the order-book logic.
 
