@@ -471,6 +471,169 @@ void test_indicative_match_uses_direction_reversal_tie_break() {
   expect(result.volume == 0, "The candidate volume should be preserved");
 }
 
+void test_indicative_match_picks_closest_to_reference_price() {
+  tse_mbo::IssueState issue_state;
+  issue_state.issue_code = "7203";
+  issue_state.previous_reference_price = tse_mbo::make_price(13);
+  issue_state.limit_price_levels[tse_mbo::make_price(10)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(20)].ask_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(15)].bid_volume = 0;
+  issue_state.limit_price_levels[tse_mbo::make_price(15)].ask_volume = 0;
+
+  const auto result = tse_mbo::calculate_indicative_match(issue_state);
+
+  expect(result.has_result, "Multi-valid-price book should produce a match");
+  expect_price(result.price, tse_mbo::make_price(15),
+               "Should pick the in-band price closest to the previous reference price");
+  expect(result.volume == 0,
+         "IAV at the chosen price should be min(cum_bid, cum_ask)");
+}
+
+void test_indicative_match_accepts_band_edge_with_zero_tip() {
+  tse_mbo::IssueState issue_state;
+  issue_state.issue_code = "7203";
+  issue_state.previous_reference_price = tse_mbo::make_price(10);
+  issue_state.limit_price_levels[tse_mbo::make_price(10)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(10)].ask_volume = 3;
+
+  const auto result = tse_mbo::calculate_indicative_match(issue_state);
+
+  expect(result.has_result, "Single price with both sides should match");
+  expect_price(result.price, tse_mbo::make_price(10),
+               "Single in-band price should be selected");
+  expect(result.volume == 3, "IAV should be the smaller side");
+}
+
+void test_indicative_match_returns_zero_volume_for_non_crossing_book() {
+  tse_mbo::IssueState issue_state;
+  issue_state.issue_code = "7203";
+  issue_state.limit_price_levels[tse_mbo::make_price(10)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(20)].ask_volume = 5;
+  issue_state.previous_reference_price = tse_mbo::make_price(20);
+
+  const auto result = tse_mbo::calculate_indicative_match(issue_state);
+
+  expect(result.has_result,
+         "Non-crossing book yields a TSE-band result at the boundary prices");
+  expect_price(result.price, tse_mbo::make_price(20),
+               "Closest in-band price to the reference should win");
+  expect(result.volume == 0,
+         "Non-crossing book should produce zero match volume");
+}
+
+// Cond 3 takes precedence over Cond 5: when two band prices have equal IAV,
+// the price with smaller |cum_bid - cum_ask| wins, even if it's farther from ref.
+// Construction:
+//   bid 100 at 1742 and 1777, market_ask=300, no asks anywhere.
+//   At 1742: cum_bid = 200, cum_ask = 300, tip_up = 100+100=oops let me trace
+// Simpler: use volumes that hand-trace to give two band prices with different imbalance.
+void test_indicative_match_cond3_min_imbalance_beats_cond5() {
+  tse_mbo::IssueState issue_state;
+  issue_state.issue_code = "C3_TEST";
+  // Asks: market=10, plus limit ask 10 at price 1100.
+  // Bids: 5 at 900, 5 at 1000, 5 at 1100.
+  // cum_ask (low->high, +market 10):
+  //   900: 10, 1000: 10, 1100: 20.
+  // cum_bid (high->low, +market 0):
+  //   1100: 5, 1000: 10, 900: 15.
+  // tip_up=cum_ask-cum_bid+bid: 900: 10-15+5=0, 1000: 10-10+5=5, 1100: 20-5+5=20.
+  // tip_down=cum_bid-cum_ask+ask: 900: 15-10+0=5, 1000: 10-10+0=0, 1100: 5-20+10=-5.
+  // Band = {900, 1000}. IAV at 900 = min(15,10)=10. IAV at 1000 = min(10,10)=10. Equal.
+  // Imbalance at 900 = |15-10|=5. Imbalance at 1000 = |10-10|=0. Cond 3 picks 1000.
+  // ref=900 makes Cond 5 want 900 (closer), but Cond 3 overrides -> 1000.
+  issue_state.market_ask_volume = 10;
+  issue_state.limit_price_levels[tse_mbo::make_price(900)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(1000)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(1100)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(1100)].ask_volume = 10;
+  issue_state.previous_reference_price = tse_mbo::make_price(900);
+
+  const auto result = tse_mbo::calculate_indicative_match(issue_state);
+
+  expect(result.has_result, "Cond 3 test should match");
+  expect_price(result.price, tse_mbo::make_price(1000),
+               "Cond 3 (min imbalance) overrides Cond 5 (closest to ref)");
+  expect(result.volume == 10, "Cond 3 test IAV should be 10");
+}
+
+// Cond 5.1: when reference price is above an entire Cond 3 band of mixed-side
+// imbalances, pick the highest. Construct a flat book where two prices have
+// identical (zero) imbalance and ref is above both.
+void test_indicative_match_cond5_1_ref_above_band() {
+  tse_mbo::IssueState issue_state;
+  issue_state.issue_code = "C5_1";
+  // bid=ask at price 100, bid=ask at price 110. Single-tick book at each price.
+  // cum_ask (low->high): 100->5, 110->10.
+  // cum_bid (high->low): 110->5, 100->10.
+  // tip_up: 100: 5-10+5=0; 110: 10-5+5=10.
+  // tip_down: 100: 10-5+5=10; 110: 5-10+5=0.
+  // Both in band, IAV = min(cb,ca) = 5 at each. Imbalance = 5 at each.
+  // Cond 3 keeps both. Signed imb at 100 = ca-cb = -5 (buy side),
+  //                  at 110 = ca-cb = 5 (sell side). Mixed -> Cond 5.
+  // ref=200 > both -> highest = 110.
+  issue_state.limit_price_levels[tse_mbo::make_price(100)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(100)].ask_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(110)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(110)].ask_volume = 5;
+  issue_state.previous_reference_price = tse_mbo::make_price(200);
+
+  const auto result = tse_mbo::calculate_indicative_match(issue_state);
+
+  expect(result.has_result, "C5.1 test should match");
+  expect_price(result.price, tse_mbo::make_price(110),
+               "Cond 5.1: ref above Cond 3 band -> pick highest");
+}
+
+// Cond 5.3: reference price below entire Cond 3 band -> pick lowest.
+void test_indicative_match_cond5_3_ref_below_band() {
+  tse_mbo::IssueState issue_state;
+  issue_state.issue_code = "C5_3";
+  // Same flat book as 5.1 but ref below.
+  issue_state.limit_price_levels[tse_mbo::make_price(100)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(100)].ask_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(110)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(110)].ask_volume = 5;
+  issue_state.previous_reference_price = tse_mbo::make_price(50);
+
+  const auto result = tse_mbo::calculate_indicative_match(issue_state);
+
+  expect(result.has_result, "C5.3 test should match");
+  expect_price(result.price, tse_mbo::make_price(100),
+               "Cond 5.3: ref below Cond 3 band -> pick lowest");
+}
+
+// Cond 5.2: reference price inside the Cond 3 band -> pick reference.
+void test_indicative_match_cond5_2_ref_inside_band() {
+  tse_mbo::IssueState issue_state;
+  issue_state.issue_code = "C5_2";
+  // Three flat-imbalance prices: 100, 105, 110. ref=105.
+  issue_state.limit_price_levels[tse_mbo::make_price(100)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(100)].ask_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(105)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(105)].ask_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(110)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(110)].ask_volume = 5;
+  issue_state.previous_reference_price = tse_mbo::make_price(105);
+
+  const auto result = tse_mbo::calculate_indicative_match(issue_state);
+
+  expect(result.has_result, "C5.2 test should match");
+  expect_price(result.price, tse_mbo::make_price(105),
+               "Cond 5.2: ref inside Cond 3 band -> pick reference itself");
+}
+
+// Market orders alone (no limits) cannot form a contract price.
+void test_indicative_match_market_only_no_match() {
+  tse_mbo::IssueState issue_state;
+  issue_state.issue_code = "MKTONLY";
+  issue_state.market_ask_volume = 10;
+  issue_state.market_bid_volume = 5;
+
+  const auto result = tse_mbo::calculate_indicative_match(issue_state);
+
+  expect(!result.has_result, "Market-only book has no in-band price");
+}
+
 void test_app_replays_multiple_pcaps_by_capture_time() {
   const auto temp_dir = std::filesystem::temp_directory_path();
   const auto early_path = temp_dir / "tse_mbo_timestamp_early.pcap.gz";
@@ -516,6 +679,14 @@ int main() {
     test_order_book_replayer_replaces_existing_order_at_same_id();
     test_indicative_match_supports_market_orders();
     test_indicative_match_uses_direction_reversal_tie_break();
+    test_indicative_match_picks_closest_to_reference_price();
+    test_indicative_match_accepts_band_edge_with_zero_tip();
+    test_indicative_match_returns_zero_volume_for_non_crossing_book();
+    test_indicative_match_cond3_min_imbalance_beats_cond5();
+    test_indicative_match_cond5_1_ref_above_band();
+    test_indicative_match_cond5_2_ref_inside_band();
+    test_indicative_match_cond5_3_ref_below_band();
+    test_indicative_match_market_only_no_match();
     test_app_replays_multiple_pcaps_by_capture_time();
   } catch (const std::exception& ex) {
     std::cerr << "Test failure: " << ex.what() << '\n';

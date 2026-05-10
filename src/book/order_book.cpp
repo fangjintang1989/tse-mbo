@@ -50,9 +50,6 @@ bool OrderBookReplayer::is_opening_eligible(const Order& order) noexcept {
 
 void OrderBookReplayer::recalculate_issue_state(IssueState& issue_state) {
   issue_state.last_indicative_match = calculate_indicative_match(issue_state);
-  if (issue_state.last_indicative_match.has_result) {
-    issue_state.previous_reference_price = issue_state.last_indicative_match.price;
-  }
 }
 
 void OrderBookReplayer::add_order_to_book(IssueState& issue_state, const Order& order) {
@@ -199,7 +196,7 @@ void OrderBookReplayer::apply_message(IssueState& issue_state, const FlexMessage
             state.limit_price_levels.clear();
             state.market_bid_volume = 0;
             state.market_ask_volume = 0;
-            state.previous_reference_price.reset();
+            state.previous_reference_price = state.base_price;
             state.last_indicative_match = {};
           }
           return;
@@ -216,8 +213,23 @@ IssueState& OrderBookReplayer::issue_state_for(const FlexPacketHeader& header) {
   auto [it, inserted] = issues_.try_emplace(key);
   if (inserted) {
     it->second.issue_code = key;
+    if (const auto pending = pending_base_prices_.find(key); pending != pending_base_prices_.end()) {
+      it->second.base_price = pending->second;
+      it->second.previous_reference_price = pending->second;
+    }
   }
   return it->second;
+}
+
+void OrderBookReplayer::set_base_price(const std::string& issue_code, Price base_price) {
+  if (const auto existing = issues_.find(issue_code); existing != issues_.end()) {
+    existing->second.base_price = base_price;
+    if (!existing->second.previous_reference_price.has_value()) {
+      existing->second.previous_reference_price = base_price;
+    }
+    return;
+  }
+  pending_base_prices_[issue_code] = base_price;
 }
 
 }  // namespace tse_mbo

@@ -1,6 +1,7 @@
 #include "app/app.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -23,6 +24,7 @@ namespace {
 struct VenueInstrument {
   std::string symbol;
   std::string security_type;
+  std::optional<Price> base_price;
 };
 
 using VenueCatalog = std::unordered_map<std::string, VenueInstrument>;
@@ -52,6 +54,29 @@ std::string extract_quoted_value(std::string_view text, std::string_view key) {
   return std::string{text.substr(value_start, value_end - value_start)};
 }
 
+std::optional<std::int64_t> extract_integer_value(std::string_view text, std::string_view key) {
+  const auto start = text.find(key);
+  if (start == std::string_view::npos) {
+    return std::nullopt;
+  }
+  auto cursor = start + key.size();
+  while (cursor < text.size() && (text[cursor] == ' ' || text[cursor] == '\t')) {
+    ++cursor;
+  }
+  const auto value_start = cursor;
+  while (cursor < text.size() && (std::isdigit(static_cast<unsigned char>(text[cursor])) || text[cursor] == '-')) {
+    ++cursor;
+  }
+  if (cursor == value_start) {
+    return std::nullopt;
+  }
+  try {
+    return std::stoll(std::string{text.substr(value_start, cursor - value_start)});
+  } catch (...) {
+    return std::nullopt;
+  }
+}
+
 VenueCatalog load_venue_catalog(const std::filesystem::path& venue_json_path) {
   std::ifstream input(venue_json_path);
   if (!input.is_open()) {
@@ -67,11 +92,15 @@ VenueCatalog load_venue_catalog(const std::filesystem::path& venue_json_path) {
 
     const auto symbol = extract_quoted_value(line, "\"exchSymbol\": \"");
     const auto security_type = extract_quoted_value(line, "\"securityType\": \"");
-    if (symbol.empty() || !is_stock_security_type(security_type)) {
+    if (symbol.empty()) {
       continue;
     }
 
-    catalog.insert_or_assign(symbol, VenueInstrument{symbol, security_type});
+    VenueInstrument instrument{symbol, security_type, std::nullopt};
+    if (const auto raw_base = extract_integer_value(line, "\"basePrice\":"); raw_base.has_value()) {
+      instrument.base_price = *raw_base * kPriceScale;
+    }
+    catalog.insert_or_assign(symbol, std::move(instrument));
   }
 
   return catalog;
@@ -90,6 +119,9 @@ std::vector<CsvRow> build_csv_rows(const Tse& tse, const VenueCatalog* venue_cat
   if (venue_catalog != nullptr) {
     for (const auto& [symbol, instrument] : *venue_catalog) {
       if (instrument.symbol.empty()) {
+        continue;
+      }
+      if (!is_stock_security_type(instrument.security_type)) {
         continue;
       }
       const auto issue_it = tse.issues().find(symbol);
@@ -247,6 +279,11 @@ int run(const AppConfig& config) {
     if (config.venue_json_path) {
       venue_catalog = load_venue_catalog(*config.venue_json_path);
       venue_catalog_ptr = &venue_catalog;
+      for (const auto& [symbol, instrument] : venue_catalog) {
+        if (instrument.base_price.has_value()) {
+          tse.set_base_price(symbol, *instrument.base_price);
+        }
+      }
     }
 
     const auto replay_summary = replay_pcaps(config.pcap_paths, tse);

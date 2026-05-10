@@ -330,6 +330,7 @@ std::string decode_issue_name(const std::vector<std::uint32_t>& code_units) {
 struct VenueCatalog {
   std::map<std::string, std::string> issue_names;
   std::unordered_set<std::string> stock_issue_codes;
+  std::unordered_map<std::string, tse_mbo::Price> base_prices;
 };
 
 VenueCatalog load_venue_catalog(const std::filesystem::path& venue_json_path) {
@@ -357,6 +358,29 @@ VenueCatalog load_venue_catalog(const std::filesystem::path& venue_json_path) {
     }
     if (security_type == "01" || security_type == "02" || security_type == "03" || security_type == "04") {
       catalog.stock_issue_codes.insert(issue_code);
+    }
+    {
+      const auto base_price_key = std::string{"\"basePrice\":"};
+      const auto pos = line.find(base_price_key);
+      if (pos != std::string::npos) {
+        auto cursor = pos + base_price_key.size();
+        while (cursor < line.size() && (line[cursor] == ' ' || line[cursor] == '\t')) {
+          ++cursor;
+        }
+        const auto value_start = cursor;
+        while (cursor < line.size() &&
+               (std::isdigit(static_cast<unsigned char>(line[cursor])) || line[cursor] == '-')) {
+          ++cursor;
+        }
+        if (cursor > value_start) {
+          try {
+            const auto raw = std::stoll(line.substr(value_start, cursor - value_start));
+            catalog.base_prices.insert_or_assign(
+                issue_code, raw * tse_mbo::kPriceScale);
+          } catch (...) {
+          }
+        }
+      }
     }
   }
 
@@ -831,6 +855,9 @@ int main() {
 
     const auto venue_catalog = load_venue_catalog(venue_json_path);
     Tse tse;
+    for (const auto& [symbol, base_price] : venue_catalog.base_prices) {
+      tse.set_base_price(symbol, base_price);
+    }
     const std::filesystem::path results_dir{TSE_MBO_RESULTS_DIR};
     std::filesystem::create_directories(results_dir);
     const auto step1_decoded_csv_path = results_dir / "step1_decoded_messages.csv";

@@ -208,6 +208,20 @@ The assignment is being implemented in three stages:
 
 This repo currently implements all three stages, including rolling IAP/IAV calculation and CSV export in `src/book/indicative.*`, with `src/tse/` as the user-facing engine facade.
 
+## TSE Itayose Rule (priority-ordered)
+
+Step 3 implements the JPX Itayose call-auction price-formation rule. The matching engine applies five conditions in strict priority order — each only narrows the set left by the previous one. Full derivation, edge cases, wider thoughts, and JPX source links are in [`docs/itayose-calculation.md`](docs/itayose-calculation.md).
+
+1. **Cond 1 — Executable price set.** Keep prices `P` where `cum_bid(P) > 0 AND cum_ask(P) > 0`.
+2. **Cond 2 — Maximum executable volume.** Of those, keep prices that maximize `min(cum_bid, cum_ask)`. Equivalent to `tip_up(P) >= 0 AND tip_down(P) >= 0`, the "Itayose band". Within the band, IAV is constant.
+3. **Cond 3 — Minimum imbalance.** Of those, keep prices that minimize `|cum_bid(P) - cum_ask(P)|`.
+4. **Cond 4 — Side rule.** If the Cond 3 set has the same residual side at every price: all-sell → lowest, all-buy → highest. Otherwise → Cond 5.
+5. **Cond 5 — Reference-price tie-break.** With `R = base price`: `R > H` → highest, `L ≤ R ≤ H` → closest to `R`, `R < L` → lowest.
+6. **IAV** = `min(cum_bid(P*), cum_ask(P*))`. Boundary cases can legitimately produce `IAV = 0` with a valid IAP.
+7. **Allocation among orders at `P*`** (not implemented in this repo, not derivable from FLEX feed): market orders first, then per-securities-company aggregated quantity.
+
+The base price `R` is loaded from `TseVenue.20241105.json`'s `basePrice` field, set once per issue when first observed, and never overwritten by the running IAP. See `docs/itayose-calculation.md` §6 for outstanding work (FLEX `BP` tag decoding for intra-day base updates, halt / special-quote state machine).
+
 ## Current Status
 
 Implemented:
@@ -238,7 +252,7 @@ Not implemented yet:
 - A single UDP payload may contain multiple FLEX packets back-to-back; the parser handles this case.
 - Order-book replay is implemented for `A`, `D`, `E`, `C`, and `R`, but protocol coverage is not yet complete for every tag type.
 - FLEX price fields are decoded once when `A` tags are replayed: the unsigned wire integer uses four decimal places, so raw `17770000` becomes real price `1777.0000`; market-order max price is kept as an internal sentinel and excluded from the limit-price ladder.
-- Step 3 currently uses the screenshot-derived IAP/IAV rule captured in `notes/step3_iap_iav_calculation.cpp`.
+- Step 3 implements the JPX Itayose rule described in [`docs/itayose-calculation.md`](docs/itayose-calculation.md). The per-code sketch remains in `notes/step3_iap_iav_calculation.cpp`.
 
 ## Notes
 

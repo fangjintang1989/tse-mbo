@@ -48,6 +48,8 @@ struct IndicativeMatchResult {
   bool has_result = false;
   Price price = 0;
   Volume volume = 0;
+  bool has_reference_price = false;
+  Price reference_price = 0;
 };
 
 enum class Side : char {
@@ -76,6 +78,7 @@ struct IssueState {
   std::map<Price, PriceLevel> limit_price_levels;
   Volume market_bid_volume = 0;
   Volume market_ask_volume = 0;
+  std::optional<Price> base_price;
   std::optional<Price> previous_reference_price;
   IndicativeMatchResult last_indicative_match;
   std::uint32_t last_sequence_number = 0;
@@ -98,6 +101,8 @@ class OrderBookReplayer {
  public:
   void apply(const NormalizedFlexPacket& packet);
 
+  void set_base_price(const std::string& issue_code, Price base_price);
+
   const std::unordered_map<std::string, IssueState>& issues() const noexcept;
   const ReplayStats& stats() const noexcept;
 
@@ -111,6 +116,7 @@ class OrderBookReplayer {
   IssueState& issue_state_for(const FlexPacketHeader& header);
 
   std::unordered_map<std::string, IssueState> issues_;
+  std::unordered_map<std::string, Price> pending_base_prices_;
   ReplayStats stats_;
 };
 

@@ -93,7 +93,7 @@ inline void write_indicative_audit_csv(
     const std::unordered_map<std::string, IssueState>& issues,
     const std::map<std::string, std::string>& issue_names) {
   out << "symbol,issue_name,selected,price,bid_price,bid_volume,ask_price,ask_volume,"
-         "cum_bid,cum_ask,tip_up,tip_down,iap,iav,market_bid_volume,market_ask_volume,"
+         "cum_bid,cum_ask,tip_up,tip_down,iap,iav,ref_price,market_bid_volume,market_ask_volume,"
          "live_orders,last_sequence,last_update\n";
 
   for (const auto& issue_code : issue_codes) {
@@ -119,7 +119,13 @@ inline void write_indicative_audit_csv(
         out << "0.0000";
       }
       out << ',' << (result.has_result ? result.volume : 0)
-          << ',' << issue_state.market_bid_volume
+          << ',';
+      if (result.has_reference_price) {
+        out << std::fixed << std::setprecision(4) << price_to_double(result.reference_price);
+      } else {
+        out << "0.0000";
+      }
+      out << ',' << issue_state.market_bid_volume
           << ',' << issue_state.market_ask_volume
           << ',' << issue_state.live_orders.size()
           << ',' << issue_state.last_sequence_number
@@ -146,7 +152,13 @@ inline void write_indicative_audit_csv(
         out << "0.0000";
       }
       out << ',' << (result.has_result ? result.volume : 0)
-          << ',' << issue_state.market_bid_volume
+          << ',';
+      if (result.has_reference_price) {
+        out << std::fixed << std::setprecision(4) << price_to_double(result.reference_price);
+      } else {
+        out << "0.0000";
+      }
+      out << ',' << issue_state.market_bid_volume
           << ',' << issue_state.market_ask_volume
           << ',' << issue_state.live_orders.size()
           << ',' << issue_state.last_sequence_number

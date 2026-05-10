@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
+#include <cstdlib>
+#include <limits>
 #include <vector>
 
 namespace tse_mbo {
@@ -61,67 +62,99 @@ IndicativeMatchResult calculate_indicative_match(const IssueState& issue_state) 
     snapshot.cum_bid = running_bid;
   }
 
-  std::size_t cursor = 0;
-  if (issue_state.previous_reference_price.has_value()) {
-    const auto it = std::lower_bound(
-        snapshots.begin(), snapshots.end(), *issue_state.previous_reference_price,
-        [](const PriceSnapshot& snapshot, Price price) { return snapshot.price < price; });
-
-    if (it == snapshots.end()) {
-      cursor = snapshots.size() - 1U;
-    } else {
-      cursor = static_cast<std::size_t>(std::distance(snapshots.begin(), it));
-    }
-  }
-
-  std::size_t previous_index = cursor;
-  std::int64_t previous_score = 0;
-  int previous_direction = 0;
-
-  while (true) {
-    const auto& snapshot = snapshots[cursor];
+  // Cond 1 + Cond 2: prices where bids and offers match at the maximum executable
+  // volume. The (tip_up >= 0 && tip_down >= 0) filter is mathematically equivalent
+  // to "max min(cum_bid, cum_ask)" within the price ladder.
+  std::vector<const PriceSnapshot*> band;
+  band.reserve(snapshots.size());
+  for (const auto& snapshot : snapshots) {
     const std::int64_t tip_up = static_cast<std::int64_t>(snapshot.cum_ask) -
                                 static_cast<std::int64_t>(snapshot.cum_bid) +
                                 static_cast<std::int64_t>(snapshot.bid_volume);
     const std::int64_t tip_down = static_cast<std::int64_t>(snapshot.cum_bid) -
                                   static_cast<std::int64_t>(snapshot.cum_ask) +
                                   static_cast<std::int64_t>(snapshot.ask_volume);
-
-    if (tip_up > 0 && tip_down > 0) {
-      return make_result(snapshot);
+    if (tip_up >= 0 && tip_down >= 0) {
+      band.push_back(&snapshot);
     }
-
-    int current_direction = 0;
-    if (tip_down <= 0) {
-      if (cursor == 0) {
-        return make_result(snapshot);
-      }
-      previous_index = cursor;
-      previous_score = static_cast<std::int64_t>(snapshot.bid_volume + snapshot.ask_volume);
-      --cursor;
-      current_direction = -1;
-    } else {
-      if (cursor + 1U == snapshots.size()) {
-        return make_result(snapshot);
-      }
-      previous_index = cursor;
-      previous_score = static_cast<std::int64_t>(snapshot.bid_volume + snapshot.ask_volume);
-      ++cursor;
-      current_direction = 1;
-    }
-
-    if (previous_direction * current_direction == -1) {
-      const auto& current_snapshot = snapshots[cursor];
-      const std::int64_t current_score =
-          static_cast<std::int64_t>(current_snapshot.bid_volume + current_snapshot.ask_volume);
-      if (previous_score < current_score) {
-        cursor = previous_index;
-      }
-      return make_result(snapshots[cursor]);
-    }
-
-    previous_direction = current_direction;
   }
+
+  if (band.empty()) {
+    return {};
+  }
+
+  // Cond 3: among Cond 2 prices, keep those with minimum imbalance |cum_bid - cum_ask|.
+  std::int64_t min_imbalance = std::numeric_limits<std::int64_t>::max();
+  for (const auto* snapshot : band) {
+    const std::int64_t imbalance = std::abs(static_cast<std::int64_t>(snapshot->cum_bid) -
+                                            static_cast<std::int64_t>(snapshot->cum_ask));
+    if (imbalance < min_imbalance) {
+      min_imbalance = imbalance;
+    }
+  }
+
+  std::vector<const PriceSnapshot*> cond3;
+  cond3.reserve(band.size());
+  for (const auto* snapshot : band) {
+    const std::int64_t imbalance = std::abs(static_cast<std::int64_t>(snapshot->cum_bid) -
+                                            static_cast<std::int64_t>(snapshot->cum_ask));
+    if (imbalance == min_imbalance) {
+      cond3.push_back(snapshot);
+    }
+  }
+
+  const PriceSnapshot* chosen = cond3.front();
+  if (cond3.size() > 1) {
+    // Cond 4: classify each Cond 3 price by the side of its imbalance, computed
+    // from sell - buy at that price. min_imbalance > 0 means every Cond 3 price
+    // has the same residual side; we can pick from extremes directly.
+    bool all_sell_side = true;
+    bool all_buy_side = true;
+    for (const auto* snapshot : cond3) {
+      const std::int64_t signed_imb = static_cast<std::int64_t>(snapshot->cum_ask) -
+                                      static_cast<std::int64_t>(snapshot->cum_bid);
+      if (signed_imb <= 0) {
+        all_sell_side = false;
+      }
+      if (signed_imb >= 0) {
+        all_buy_side = false;
+      }
+    }
+
+    if (min_imbalance > 0 && all_sell_side) {
+      chosen = cond3.front();  // lowest price (snapshots are ascending)
+    } else if (min_imbalance > 0 && all_buy_side) {
+      chosen = cond3.back();   // highest price
+    } else {
+      // Cond 5: fall back to Reference Price.
+      const Price reference_price = issue_state.previous_reference_price.value_or(0);
+      const Price highest = cond3.back()->price;
+      const Price lowest = cond3.front()->price;
+      if (reference_price > highest) {
+        chosen = cond3.back();
+      } else if (reference_price < lowest) {
+        chosen = cond3.front();
+      } else {
+        const PriceSnapshot* best = cond3.front();
+        std::int64_t best_distance = std::abs(best->price - reference_price);
+        for (const auto* snapshot : cond3) {
+          const std::int64_t distance = std::abs(snapshot->price - reference_price);
+          if (distance < best_distance) {
+            best = snapshot;
+            best_distance = distance;
+          }
+        }
+        chosen = best;
+      }
+    }
+  }
+
+  IndicativeMatchResult result = make_result(*chosen);
+  if (issue_state.previous_reference_price.has_value()) {
+    result.has_reference_price = true;
+    result.reference_price = *issue_state.previous_reference_price;
+  }
+  return result;
 }
 
 }  // namespace tse_mbo

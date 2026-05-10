@@ -22,15 +22,18 @@
 // - indicative_equilibrium_volume
 
 // Algorithm
-// 1. Initialize the level book from the message.
-// 2. Start from previous_reference_price when it exists.
-// 3. At each price, read bid_volume, ask_volume, cum_bid, and cum_ask.
-// 4. Compute:
-//    tip_up = cum_ask - cum_bid + bid_volume
+// 1. Build cum_bid and cum_ask across the limit price ladder, including
+//    market_bid_volume and market_ask_volume on the appropriate sides.
+// 2. For each price P in the ladder compute:
+//    tip_up   = cum_ask - cum_bid + bid_volume
 //    tip_down = cum_bid - cum_ask + ask_volume
-// 5. If both tips are positive, accept the current price as IAP.
-// 6. Set IAV = min(cum_bid, cum_ask).
-// 7. If the search direction reverses, keep the closer candidate by comparing
-//    abs(previous_tip_up + previous_tip_down) with abs(tip_up + tip_down).
-// 8. If the search hits the beginning or end of the price ladder, return the
-//    current price and IAV.
+// 3. A price is in the TSE Itayose band when tip_up >= 0 and tip_down >= 0.
+//    This is equivalent to the JPX rule that at P:
+//      - all market orders execute,
+//      - all limit orders strictly superior to P execute,
+//      - at least one whole side at P fully executes.
+// 4. Among in-band prices, pick the one with the smallest
+//    abs(price - previous_reference_price). Ties keep the lower price.
+// 5. IAV at the chosen price = min(cum_bid, cum_ask).
+// 6. If no price is in-band, return has_result=false. The CSV writer renders
+//    those rows as "0.0000,0".
