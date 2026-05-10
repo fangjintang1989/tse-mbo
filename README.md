@@ -33,19 +33,24 @@ The original runtime inputs currently live in the parent workspace:
 
 ## Project Layout
 
-- `src/cli/` contains the executable entrypoint.
-- `src/app/` contains app orchestration, argument parsing, and CSV export.
-- `src/ingest/` contains gzip PCAP reading and Ethernet/IP/UDP decoding.
-- `src/flex/` contains FLEX packet header and tag parsing.
-- `src/book/` contains order-book replay and indicative calculation.
-- `tests/` contains synthetic unit coverage and real-capture fixture regression coverage.
-- `docs/` contains the original assignment/protocol files and extracted summaries.
+- The code path is split as a small pipeline:
+  - `src/replay/` loads all PCAPs, stable-sorts capture records by timestamp, and dispatches decoded data
+  - `src/ingest/` decodes gzip PCAP, Ethernet, IPv4, and UDP frames
+  - `src/flex/` parses FLEX headers/tags and normalizes raw messages at the replay boundary
+  - `src/tse/` provides the user-facing engine facade over the book
+  - `src/book/` owns order-book replay and IAP/IAV calculation
+  - `src/app/` handles CLI arguments and CSV export
+  - `src/cli/` is the executable entrypoint
+- `tests/` contains synthetic unit coverage plus real-capture fixture regression coverage.
+- `docs/` contains the original assignment/protocol files, official source notes, and extracted summaries.
 - `notes/` contains working decisions, assumptions, open questions, and the readable IAP/IAV calculation note.
 
 ```text
 src/
   cli/
   app/
+  replay/
+  tse/
   ingest/
   flex/
   book/
@@ -87,10 +92,18 @@ Fixture result artifact:
 
 - `build/results/step1_fixture_report.txt` with counts, endpoints, sample datagrams, and per-capture `issue_code -> venue name` mappings
 - `build/results/step1_decoded_messages.csv` with one row per decoded FLEX tag from the PCAPs
+- `build/results/step2_order_book_audit.csv` with final per-price audit rows using `bid_price`, `bid_volume`, `ask_price`, `ask_volume`, `cum_bid`, `cum_ask`, `tip_up`, and `tip_down`; the `selected=yes` row explains the final IAP/IAV for a symbol
 - `build/results/step3_iap_iav_fixture_results.csv` with per-stock `symbol,iap,iav` output derived from the sample captures
-- `build/results/iap_iav_audit.csv` with final per-price audit rows using `bid_price`, `bid_volume`, `ask_price`, `ask_volume`, `cum_bid`, `cum_ask`, `tip_up`, and `tip_down`; the `selected=yes` row explains the final IAP/IAV for a symbol
+
+Optional audit outputs:
+
 - `build/results/step1_step2_order_book_check.txt` and `build/results/step1_step2_order_book_mismatches.csv` from the independent step1-to-step2 replay checker
-- `build/results/symbol_1382_order_book_trace.csv` and `build/results/symbol_1382_order_book_trace_summary.txt` from the per-symbol order-by-order trace checker
+- `build/results/symbol_<issue>_order_book_trace.csv` and `build/results/symbol_<issue>_order_book_trace_summary.txt` from the per-symbol order-by-order trace checker
+
+Replay ordering:
+
+- Replay loads all capture records from all supplied PCAPs first, stable-sorts by capture timestamp, then replays into one rolling order book.
+- For the current fixture captures, this produces `304` stock rows with `0` IAP/IAV mismatches against the merged replay audit.
 
 PCAP-to-output breakdown:
 
@@ -115,6 +128,11 @@ Stock issue codes by venue JSON securityType 01-04: 304
         |
         +--> iav = 0: 31 rows
 ```
+
+The `iav = 0` rows split into two groups:
+
+- `10` rows with no IAP/IAV result at all because the replayed book never accumulates any opening-eligible orders
+- `21` rows with a valid IAP but zero IAV because the selected price is a one-sided boundary and `min(cum_bid, cum_ask)` is `0`
 
 | Stage | Count | What It Means |
 | --- | ---: | --- |
@@ -145,7 +163,8 @@ Filtered examples:
 
 - Step 1 to book trace ignores non-book FLEX rows such as `T`, `O`, and `L` because they do not change the order book state.
 - Stock CSV filtering removes non-stock issue codes such as `1570`, `1475`, and `1541` because their venue `securityType` is not `01-04` (`1570` is `B1`).
-- Final stock CSV rows can still have no IAP/IAV result even for stock issues; examples are `1452`, `152A`, `154A`, and `1770`, which replay but end with zero executable auction volume in the current data.
+- Final stock CSV rows can still have no IAP/IAV result even for stock issues; examples are `1452`, `152A`, `154A`, and `158A`, which replay but never accumulate any opening-eligible book state.
+- Some stock rows do have an IAP but still end with `iav = 0`; examples are `1770`, `2481`, `3600`, and `3954`, where the selected price is a boundary and one side is empty at the match price.
 
 ## Run
 
@@ -166,7 +185,7 @@ CSV output run:
   --pcap ../20241105_051.test.pcap.gz \
   --pcap ../20241105_052.test.pcap.gz \
   --venue-json ../TseVenue.20241105.json \
-  --csv-out build/results/iap_iav_results.csv \
+  --csv-out build/results/step3_iap_iav_results.csv \
   --summary-only
 ```
 
@@ -187,7 +206,7 @@ The assignment is being implemented in three stages:
 2. replay parsed messages into an order book
 3. calculate indicative match price and volume
 
-This repo currently implements all three stages, including rolling IAP/IAV calculation and CSV export in `src/book/indicative.*`.
+This repo currently implements all three stages, including rolling IAP/IAV calculation and CSV export in `src/book/indicative.*`, with `src/tse/` as the user-facing engine facade.
 
 ## Current Status
 
@@ -198,6 +217,7 @@ Implemented:
 - Ethernet / IPv4 / UDP decoding
 - FLEX packet header parsing
 - variable-length tag splitting
+- timestamp-merged replay across all supplied PCAPs
 - replay handling for `A`, `D`, `E`, `C`, and `R`
 - FLEX `Bn` prices decoded from raw fixed-point integers into real decimal prices at the replay boundary
 - opening-eligible price-ladder reconstruction, including market-order aggregation
