@@ -6,6 +6,7 @@ This note is my updated understanding of the protocol based on `protocol_spec.do
 
 - `docs/protocol-original.docx`
 - `docs/protocol-source.md`
+- `docs/jpx-transaction-methods.md`
 
 ## High-Level Shape
 

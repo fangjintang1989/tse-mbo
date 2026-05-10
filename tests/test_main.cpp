@@ -1,7 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <cmath>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -10,8 +10,10 @@
 
 #include <zlib.h>
 
+#include "app/app.hpp"
 #include "book/order_book.hpp"
 #include "book/indicative.hpp"
+#include "flex/flex_message.hpp"
 #include "flex/flex_parser.hpp"
 #include "ingest/network_decoder.hpp"
 #include "ingest/pcap_reader.hpp"
@@ -19,9 +21,15 @@
 namespace {
 
 using tse_mbo::CaptureRecord;
-using tse_mbo::FlexPacketView;
+using tse_mbo::AddOrderMessage;
+using tse_mbo::DeleteOrderMessage;
+using tse_mbo::ExecuteOrderMessage;
+using tse_mbo::ExecuteWithPriceOrderMessage;
 using tse_mbo::FlexParser;
 using tse_mbo::FlexTagView;
+using tse_mbo::FlexMessage;
+using tse_mbo::NormalizedFlexPacket;
+using tse_mbo::ResetMessage;
 using tse_mbo::OrderBookReplayer;
 using tse_mbo::Side;
 using tse_mbo::UdpDatagramView;
@@ -37,9 +45,54 @@ void expect(bool condition, std::string_view message) {
 }
 
 void expect_price(tse_mbo::Price actual, tse_mbo::Price expected, std::string_view message) {
-  if (std::fabs(actual - expected) > 0.00001) {
+  if (actual != expected) {
     throw std::runtime_error(std::string(message));
   }
+}
+
+NormalizedFlexPacket make_packet(const std::string& issue_code,
+                                 std::uint32_t sequence_number,
+                                 std::uint32_t update_number,
+                                 std::vector<FlexMessage> messages) {
+  NormalizedFlexPacket packet;
+  packet.header.issue_code = issue_code;
+  packet.header.sequence_number = sequence_number;
+  packet.header.update_number = update_number;
+  packet.tag_count = messages.size();
+  packet.messages = std::move(messages);
+  return packet;
+}
+
+FlexMessage make_add_message(std::uint32_t order_id,
+                             char side,
+                             std::uint64_t quantity,
+                             tse_mbo::Price price,
+                             std::uint8_t order_condition = 0,
+                             std::uint8_t modification_flag = 0) {
+  return AddOrderMessage{
+      .order_id = order_id,
+      .side = side,
+      .quantity = quantity,
+      .price = price,
+      .order_condition = order_condition,
+      .modification_flag = modification_flag,
+  };
+}
+
+FlexMessage make_delete_message(std::uint32_t order_id) {
+  return DeleteOrderMessage{.order_id = order_id};
+}
+
+FlexMessage make_execute_message(std::uint32_t order_id, std::uint64_t quantity) {
+  return ExecuteOrderMessage{.order_id = order_id, .quantity = quantity};
+}
+
+FlexMessage make_execute_with_price_message(std::uint32_t order_id, std::uint64_t quantity) {
+  return ExecuteWithPriceOrderMessage{.order_id = order_id, .quantity = quantity};
+}
+
+FlexMessage make_reset_message() {
+  return ResetMessage{};
 }
 
 void append_le_u16(std::vector<std::byte>& out, std::uint16_t value) {
@@ -120,21 +173,6 @@ std::vector<std::byte> make_delete_tag(std::uint32_t order_id) {
   return tag;
 }
 
-std::vector<std::byte> make_execute_tag(char type, std::uint32_t order_id, std::uint64_t quantity) {
-  std::vector<std::byte> tag;
-  tag.push_back(as_byte(static_cast<std::uint8_t>(type)));
-  append_be_u32(tag, 0);
-  append_be_u32(tag, order_id);
-  tag.push_back(as_byte(0));
-  append_be_u48(tag, quantity);
-
-  const std::size_t target_size = type == 'C' ? 29U : 20U;
-  while (tag.size() < target_size) {
-    tag.push_back(as_byte(0));
-  }
-  return tag;
-}
-
 std::vector<std::byte> make_reset_tag() {
   return {as_byte('R')};
 }
@@ -165,7 +203,9 @@ std::vector<std::byte> make_flex_packet(const std::string& issue_code,
   return packet;
 }
 
-CaptureRecord make_udp_capture_record(const std::vector<std::byte>& payload) {
+CaptureRecord make_udp_capture_record(const std::vector<std::byte>& payload,
+                                      std::uint32_t ts_sec = 1234,
+                                      std::uint32_t ts_subsec = 5678) {
   std::vector<std::byte> frame;
 
   for (int i = 0; i < 12; ++i) {
@@ -194,8 +234,8 @@ CaptureRecord make_udp_capture_record(const std::vector<std::byte>& payload) {
   frame.insert(frame.end(), payload.begin(), payload.end());
 
   CaptureRecord record;
-  record.ts_sec = 1234;
-  record.ts_subsec = 5678;
+  record.ts_sec = ts_sec;
+  record.ts_subsec = ts_subsec;
   record.data = std::move(frame);
   return record;
 }
@@ -294,43 +334,28 @@ void test_flex_parser_handles_multiple_packets_in_one_datagram() {
 void test_order_book_replayer_replays_add_execute_delete_and_reset() {
   OrderBookReplayer replayer;
 
-  FlexPacketView packet_one;
-  packet_one.header.issue_code = "7203";
-  packet_one.header.sequence_number = 1000;
-  packet_one.header.update_number = 10;
-  packet_one.tags = {FlexTagView{'A', 26, make_add_tag(111, 'B', 1000, 200000)},
-                     FlexTagView{'A', 26, make_add_tag(222, 'S', 700, 200500)}};
+  const auto packet_one = make_packet(
+      "7203", 1000, 10,
+      {make_add_message(111, 'B', 1000, tse_mbo::make_price(20)),
+       make_add_message(222, 'S', 700, tse_mbo::make_price(20, 500))});
 
-  FlexPacketView packet_two;
-  packet_two.header.issue_code = "7203";
-  packet_two.header.sequence_number = 1001;
-  packet_two.header.update_number = 11;
-  packet_two.tags = {FlexTagView{'E', 20, make_execute_tag('E', 111, 400)},
-                     FlexTagView{'C', 29, make_execute_tag('C', 222, 700)}};
+  const auto packet_two = make_packet(
+      "7203", 1001, 11,
+      {make_execute_message(111, 400),
+       make_execute_with_price_message(222, 700)});
 
-  FlexPacketView packet_three;
-  packet_three.header.issue_code = "7203";
-  packet_three.header.sequence_number = 1002;
-  packet_three.header.update_number = 12;
-  packet_three.tags = {FlexTagView{'D', 11, make_delete_tag(111)}};
+  const auto packet_three = make_packet("7203", 1002, 12, {make_delete_message(111)});
 
-  FlexPacketView packet_four;
-  packet_four.header.issue_code = "8306";
-  packet_four.header.sequence_number = 2000;
-  packet_four.header.update_number = 20;
-  packet_four.tags = {FlexTagView{'A', 26, make_add_tag(333, 'S', 900, 301000)}};
+  const auto packet_four = make_packet("8306", 2000, 20,
+                                        {make_add_message(333, 'S', 900, tse_mbo::make_price(30, 1000))});
 
-  FlexPacketView packet_five;
-  packet_five.header.issue_code = "";
-  packet_five.header.sequence_number = 3000;
-  packet_five.header.update_number = 30;
-  packet_five.tags = {FlexTagView{'R', 1, make_reset_tag()}};
+  const auto packet_five = make_packet("", 3000, 30, {make_reset_message()});
 
   replayer.apply(packet_one);
   const auto& issue_7203_after_add = replayer.issues().at("7203");
-  expect_price(issue_7203_after_add.live_orders.at(222).price, 20.05,
+  expect_price(issue_7203_after_add.live_orders.at(222).price, tse_mbo::make_price(20, 500),
                "Raw add price with fractional digits should decode into real order price");
-  expect(issue_7203_after_add.limit_price_levels.at(20.05).ask_volume == 700,
+  expect(issue_7203_after_add.limit_price_levels.at(tse_mbo::make_price(20, 500)).ask_volume == 700,
          "Book should use real decimal prices as ladder keys");
 
   replayer.apply(packet_two);
@@ -339,10 +364,11 @@ void test_order_book_replayer_replays_add_execute_delete_and_reset() {
   expect(issue_7203_after_exec.live_orders.size() == 1, "One order should remain after execution");
   expect(issue_7203_after_exec.live_orders.contains(111), "Order 111 should remain live");
   expect(issue_7203_after_exec.live_orders.at(111).quantity == 600, "Partial execution should reduce quantity");
-  expect_price(issue_7203_after_exec.live_orders.at(111).price, 20.0,
+  expect_price(issue_7203_after_exec.live_orders.at(111).price, tse_mbo::make_price(20),
                "Raw add price should be decoded into real order price");
   expect(issue_7203_after_exec.live_orders.at(111).side == Side::buy, "Buy side should be preserved");
-  expect(issue_7203_after_exec.limit_price_levels.find(20.05) == issue_7203_after_exec.limit_price_levels.end(),
+  expect(issue_7203_after_exec.limit_price_levels.find(tse_mbo::make_price(20, 500)) ==
+             issue_7203_after_exec.limit_price_levels.end(),
          "Fully executed sell order should remove the real-price level");
 
   replayer.apply(packet_three);
@@ -370,39 +396,36 @@ void test_order_book_replayer_replays_add_execute_delete_and_reset() {
 void test_order_book_replayer_tracks_opening_eligible_orders_only() {
   OrderBookReplayer replayer;
 
-  FlexPacketView packet;
-  packet.header.issue_code = "7203";
-  packet.header.sequence_number = 4000;
-  packet.header.update_number = 40;
-  packet.tags = {FlexTagView{'A', 26, make_add_tag(401, 'B', 500, 100000, 4)},
-                 FlexTagView{'A', 26, make_add_tag(402, 'S', 250, 100000, 2)}};
+  const auto packet = make_packet(
+      "7203", 4000, 40,
+      {make_add_message(401, 'B', 500, tse_mbo::make_price(10), 4),
+       make_add_message(402, 'S', 250, tse_mbo::make_price(10), 2)});
 
   replayer.apply(packet);
 
   const auto& issue = replayer.issues().at("7203");
   expect(issue.live_orders.size() == 2, "Both orders should be tracked in live state");
   expect(issue.limit_price_levels.size() == 1, "Only opening-eligible orders should reach the book");
-  expect(issue.limit_price_levels.at(10.0).bid_volume == 0, "On-close buy should be excluded");
-  expect(issue.limit_price_levels.at(10.0).ask_volume == 250, "On-open sell should be included");
+  expect(issue.limit_price_levels.at(tse_mbo::make_price(10)).bid_volume == 0,
+         "On-close buy should be excluded");
+  expect(issue.limit_price_levels.at(tse_mbo::make_price(10)).ask_volume == 250,
+         "On-open sell should be included");
   expect(issue.last_indicative_match.has_result, "Single-sided book should still produce a boundary result");
-  expect_price(issue.last_indicative_match.price, 10.0, "Boundary result should use the available price level");
+  expect_price(issue.last_indicative_match.price, tse_mbo::make_price(10),
+               "Boundary result should use the available price level");
   expect(issue.last_indicative_match.volume == 0, "Single-sided boundary result should have zero volume");
 }
 
 void test_order_book_replayer_replaces_existing_order_at_same_id() {
   OrderBookReplayer replayer;
 
-  FlexPacketView initial_packet;
-  initial_packet.header.issue_code = "7203";
-  initial_packet.header.sequence_number = 5000;
-  initial_packet.header.update_number = 50;
-  initial_packet.tags = {FlexTagView{'A', 26, make_add_tag(501, 'B', 1000, 200000, 0)}};
+  const auto initial_packet = make_packet(
+      "7203", 5000, 50,
+      {make_add_message(501, 'B', 1000, tse_mbo::make_price(20))});
 
-  FlexPacketView replacement_packet;
-  replacement_packet.header.issue_code = "7203";
-  replacement_packet.header.sequence_number = 5001;
-  replacement_packet.header.update_number = 51;
-  replacement_packet.tags = {FlexTagView{'A', 26, make_add_tag(501, 'B', 700, 210000, 0)}};
+  const auto replacement_packet = make_packet(
+      "7203", 5001, 51,
+      {make_add_message(501, 'B', 700, tse_mbo::make_price(21))});
 
   replayer.apply(initial_packet);
   replayer.apply(replacement_packet);
@@ -410,10 +433,12 @@ void test_order_book_replayer_replaces_existing_order_at_same_id() {
   const auto& issue = replayer.issues().at("7203");
   expect(issue.live_orders.size() == 1, "Replacement should keep one live order");
   expect(issue.live_orders.at(501).quantity == 700, "Replacement should update order quantity");
-  expect_price(issue.live_orders.at(501).price, 21.0, "Replacement should update order price");
+  expect_price(issue.live_orders.at(501).price, tse_mbo::make_price(21),
+               "Replacement should update order price");
   expect(issue.limit_price_levels.size() == 1, "Replacement should leave one price level");
-  expect(issue.limit_price_levels.at(21.0).bid_volume == 700, "New price level should be populated");
-  expect(issue.limit_price_levels.find(20.0) == issue.limit_price_levels.end(),
+  expect(issue.limit_price_levels.at(tse_mbo::make_price(21)).bid_volume == 700,
+         "New price level should be populated");
+  expect(issue.limit_price_levels.find(tse_mbo::make_price(20)) == issue.limit_price_levels.end(),
          "Old price level should be removed");
 }
 
@@ -422,28 +447,61 @@ void test_indicative_match_supports_market_orders() {
   issue_state.issue_code = "7203";
   issue_state.market_bid_volume = 15;
   issue_state.market_ask_volume = 15;
-  issue_state.limit_price_levels[20.0].bid_volume = 5;
-  issue_state.limit_price_levels[20.0].ask_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(20)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(20)].ask_volume = 5;
 
   const auto result = tse_mbo::calculate_indicative_match(issue_state);
 
   expect(result.has_result, "Market orders should still allow a match");
-  expect_price(result.price, 20.0, "The single candidate price should be selected");
+  expect_price(result.price, tse_mbo::make_price(20), "The single candidate price should be selected");
   expect(result.volume == 20, "Market orders should contribute to IAV");
 }
 
 void test_indicative_match_uses_direction_reversal_tie_break() {
   tse_mbo::IssueState issue_state;
   issue_state.issue_code = "7203";
-  issue_state.previous_reference_price = 10.0;
-  issue_state.limit_price_levels[10.0].bid_volume = 5;
-  issue_state.limit_price_levels[20.0].ask_volume = 5;
+  issue_state.previous_reference_price = tse_mbo::make_price(10);
+  issue_state.limit_price_levels[tse_mbo::make_price(10)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(20)].ask_volume = 5;
 
   const auto result = tse_mbo::calculate_indicative_match(issue_state);
 
   expect(result.has_result, "Reversal search should still yield a result");
-  expect_price(result.price, 10.0, "Tie reversal should keep the current cursor candidate");
+  expect_price(result.price, tse_mbo::make_price(10), "Tie reversal should keep the current cursor candidate");
   expect(result.volume == 0, "The candidate volume should be preserved");
+}
+
+void test_app_replays_multiple_pcaps_by_capture_time() {
+  const auto temp_dir = std::filesystem::temp_directory_path();
+  const auto early_path = temp_dir / "tse_mbo_timestamp_early.pcap.gz";
+  const auto late_path = temp_dir / "tse_mbo_timestamp_late.pcap.gz";
+  const auto output_path = temp_dir / "tse_mbo_timestamp_result.csv";
+
+  const auto early_payload = make_flex_packet("7203", 1, 1, {make_add_tag(901, 'B', 100, 100000)});
+  const auto late_payload = make_flex_packet("7203", 2, 2, {make_delete_tag(901)});
+  write_gzip_file(early_path, make_classic_pcap_bytes(make_udp_capture_record(early_payload, 100, 0)));
+  write_gzip_file(late_path, make_classic_pcap_bytes(make_udp_capture_record(late_payload, 200, 0)));
+
+  tse_mbo::AppConfig config;
+  config.pcap_paths = {late_path, early_path};
+  config.csv_output_path = output_path;
+  config.summary_only = true;
+
+  const int status = tse_mbo::run(config);
+  expect(status == 0, "Merged replay app run should succeed");
+
+  std::ifstream output(output_path);
+  std::string header;
+  std::string row;
+  std::getline(output, header);
+  std::getline(output, row);
+
+  expect(header == "symbol,iap,iav", "Merged replay CSV header mismatch");
+  expect(row == "7203,0.0000,0", "Merged replay should apply early add before late delete");
+
+  std::filesystem::remove(early_path);
+  std::filesystem::remove(late_path);
+  std::filesystem::remove(output_path);
 }
 
 }  // namespace
@@ -458,6 +516,7 @@ int main() {
     test_order_book_replayer_replaces_existing_order_at_same_id();
     test_indicative_match_supports_market_orders();
     test_indicative_match_uses_direction_reversal_tie_break();
+    test_app_replays_multiple_pcaps_by_capture_time();
   } catch (const std::exception& ex) {
     std::cerr << "Test failure: " << ex.what() << '\n';
     return 1;

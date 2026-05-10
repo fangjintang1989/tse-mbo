@@ -13,9 +13,8 @@
 #include <vector>
 
 #include "book/order_book.hpp"
-#include "flex/flex_parser.hpp"
-#include "ingest/network_decoder.hpp"
-#include "ingest/pcap_reader.hpp"
+#include "replay/replay_runner.hpp"
+#include "tse/tse.hpp"
 
 namespace tse_mbo {
 
@@ -85,7 +84,7 @@ void print_usage_impl() {
          "[--summary-only]\n";
 }
 
-std::vector<CsvRow> build_csv_rows(const OrderBookReplayer& replayer, const VenueCatalog* venue_catalog) {
+std::vector<CsvRow> build_csv_rows(const Tse& tse, const VenueCatalog* venue_catalog) {
   std::vector<CsvRow> rows;
 
   if (venue_catalog != nullptr) {
@@ -93,8 +92,8 @@ std::vector<CsvRow> build_csv_rows(const OrderBookReplayer& replayer, const Venu
       if (instrument.symbol.empty()) {
         continue;
       }
-      const auto issue_it = replayer.issues().find(symbol);
-      if (issue_it == replayer.issues().end()) {
+      const auto issue_it = tse.issues().find(symbol);
+      if (issue_it == tse.issues().end()) {
         continue;
       }
       if (symbol == "<control>") {
@@ -103,7 +102,7 @@ std::vector<CsvRow> build_csv_rows(const OrderBookReplayer& replayer, const Venu
       rows.push_back(CsvRow{symbol, issue_it->second.last_indicative_match});
     }
   } else {
-    for (const auto& [symbol, issue_state] : replayer.issues()) {
+    for (const auto& [symbol, issue_state] : tse.issues()) {
       if (symbol == "<control>") {
         continue;
       }
@@ -123,7 +122,7 @@ void write_csv(std::ostream& out, const std::vector<CsvRow>& rows) {
   for (const auto& row : rows) {
     out << row.symbol << ',';
     if (row.result.has_result) {
-      out << std::fixed << std::setprecision(4) << row.result.price;
+      out << std::fixed << std::setprecision(4) << price_to_double(row.result.price);
     } else {
       out << "0.0000";
     }
@@ -241,10 +240,7 @@ int run(const AppConfig& config) {
       }
     }
 
-    PcapReader pcap_reader;
-    NetworkDecoder network_decoder;
-    FlexParser flex_parser;
-    OrderBookReplayer replayer;
+    Tse tse;
 
     VenueCatalog venue_catalog;
     const VenueCatalog* venue_catalog_ptr = nullptr;
@@ -253,34 +249,11 @@ int run(const AppConfig& config) {
       venue_catalog_ptr = &venue_catalog;
     }
 
-    std::uint64_t total_capture_records = 0;
-    std::uint64_t total_udp_datagrams = 0;
+    const auto replay_summary = replay_pcaps(config.pcap_paths, tse);
 
-    for (const auto& pcap_path : config.pcap_paths) {
-      const auto records = pcap_reader.read_all(pcap_path);
-      total_capture_records += records.size();
-
-      for (std::size_t record_index = 0; record_index < records.size(); ++record_index) {
-        const auto& record = records[record_index];
-        const auto datagram = network_decoder.decode_udp(record);
-        if (!datagram) {
-          continue;
-        }
-        ++total_udp_datagrams;
-
-        const auto packets = flex_parser.parse_all(*datagram);
-        if (packets.empty()) {
-          continue;
-        }
-        for (const auto& packet : packets) {
-          replayer.apply(packet);
-        }
-      }
-    }
-
-    const auto& stats = replayer.stats();
-    std::cout << "Capture records: " << total_capture_records << "\n";
-    std::cout << "UDP datagrams: " << total_udp_datagrams << "\n";
+    const auto& stats = tse.stats();
+    std::cout << "Capture records: " << replay_summary.capture_records << "\n";
+    std::cout << "UDP datagrams: " << replay_summary.udp_datagrams << "\n";
     std::cout << "FLEX packets parsed: " << stats.packets_parsed << "\n";
     std::cout << "Tags seen: " << stats.tags_seen << "\n";
     std::cout << "A tags: " << stats.add_tags << "\n";
@@ -288,14 +261,14 @@ int run(const AppConfig& config) {
     std::cout << "E tags: " << stats.executed_tags << "\n";
     std::cout << "C tags: " << stats.executed_with_price_tags << "\n";
     std::cout << "R tags: " << stats.reset_tags << "\n";
-    std::cout << "Issues tracked: " << replayer.issues().size() << "\n";
+    std::cout << "Issues tracked: " << tse.issues().size() << "\n";
 
     if (!config.summary_only) {
-      print_issue_summary(replayer.issues());
+      print_issue_summary(tse.issues());
     }
 
     if (config.csv_output_path) {
-      const auto rows = build_csv_rows(replayer, venue_catalog_ptr);
+      const auto rows = build_csv_rows(tse, venue_catalog_ptr);
       std::ofstream output(*config.csv_output_path, std::ios::out | std::ios::trunc);
       if (!output.is_open()) {
         std::cerr << "Failed to open CSV output file: " << *config.csv_output_path << "\n";

@@ -107,6 +107,8 @@ For step 3:
 
 - `src/cli`: executable entrypoint
 - `src/app`: application orchestration and output
+- `src/replay`: PCAP loading, timestamp merge, and callback dispatch
+- `src/tse`: user-facing engine facade
 - `src/ingest`: PCAP and network decoding
 - `src/flex`: FLEX parser
 - `src/book`: order book and indicative calculation

@@ -13,6 +13,7 @@ The work is split into 3 steps:
 3. calculate indicative auction price and volume (IAP/IAV)
 
 Step 3 now uses the screenshot-derived IAP/IAV rule captured in `notes/step3_iap_iav_calculation.cpp`.
+The broader opening-auction context is also anchored to `docs/jpx-transaction-methods.md`, which mirrors the official JPX/TSE Itayose page at `https://www.jpx.co.jp/english/equities/trading/domestic/04.html`.
 
 ## Current implementation direction
 
@@ -20,6 +21,8 @@ Source code is organized under a single `src/` root:
 
 - `src/cli`: executable entrypoint
 - `src/app`: orchestration, arguments, and output
+- `src/replay`: PCAP loading, timestamp merge, and callback dispatch
+- `src/tse`: user-facing engine facade
 - `src/ingest`: PCAP and network decoding
 - `src/flex`: FLEX packet parsing
 - `src/book`: order-book replay and IAP/IAV calculation
@@ -29,7 +32,7 @@ The code now supports:
 - reading the provided `.pcap.gz` files
 - decoding Ethernet, IPv4, UDP, and FLEX payloads
 - parsing packet headers and tag records
-- replaying order-book-relevant tags into per-issue state
+- replaying order-book-relevant tags into per-issue state through the `Tse` facade
 - maintaining opening-eligible per-issue ladder state and a rolling IAP/IAV result
 - exposing `calculate_indicative_match(const IssueState&)` as the step 3 calculation boundary
 

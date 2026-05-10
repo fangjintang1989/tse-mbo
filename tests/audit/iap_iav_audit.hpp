@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cmath>
 #include <cstdint>
 #include <iomanip>
 #include <map>
@@ -15,18 +14,18 @@
 namespace tse_mbo::audit {
 
 struct IndicativeAuditLevel {
-  Price price = 0.0;
-  std::uint64_t bid_volume = 0;
-  std::uint64_t ask_volume = 0;
-  std::uint64_t cum_bid = 0;
-  std::uint64_t cum_ask = 0;
+  Price price = 0;
+  Volume bid_volume = 0;
+  Volume ask_volume = 0;
+  Volume cum_bid = 0;
+  Volume cum_ask = 0;
   std::int64_t tip_up = 0;
   std::int64_t tip_down = 0;
   bool selected = false;
 };
 
 inline bool same_price(Price lhs, Price rhs) {
-  return std::fabs(lhs - rhs) <= 0.00001;
+  return lhs == rhs;
 }
 
 inline std::vector<IndicativeAuditLevel> build_indicative_audit_levels(
@@ -115,7 +114,7 @@ inline void write_indicative_audit_csv(
       write_csv_escaped(out, issue_name);
       out << ",no,0.0000,0.0000,0,0.0000,0,0,0,0,0,";
       if (result.has_result) {
-        out << std::fixed << std::setprecision(4) << result.price;
+        out << std::fixed << std::setprecision(4) << price_to_double(result.price);
       } else {
         out << "0.0000";
       }
@@ -132,17 +131,17 @@ inline void write_indicative_audit_csv(
       out << issue_code << ',';
       write_csv_escaped(out, issue_name);
       out << ',' << (level.selected ? "yes" : "no") << ','
-          << std::fixed << std::setprecision(4) << level.price << ','
-          << std::fixed << std::setprecision(4) << level.price << ','
+          << std::fixed << std::setprecision(4) << price_to_double(level.price) << ','
+          << std::fixed << std::setprecision(4) << price_to_double(level.price) << ','
           << level.bid_volume << ','
-          << std::fixed << std::setprecision(4) << level.price << ','
+          << std::fixed << std::setprecision(4) << price_to_double(level.price) << ','
           << level.ask_volume << ','
           << level.cum_bid << ','
           << level.cum_ask << ','
           << level.tip_up << ','
           << level.tip_down << ',';
       if (result.has_result) {
-        out << std::fixed << std::setprecision(4) << result.price;
+        out << std::fixed << std::setprecision(4) << price_to_double(result.price);
       } else {
         out << "0.0000";
       }

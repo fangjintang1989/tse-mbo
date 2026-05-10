@@ -22,19 +22,22 @@
 
 #include "book/order_book.hpp"
 #include "book/indicative.hpp"
+#include "flex/flex_message.hpp"
 #include "flex/flex_parser.hpp"
 #include "ingest/network_decoder.hpp"
 #include "ingest/pcap_reader.hpp"
 #include "audit/iap_iav_audit.hpp"
+#include "tse/tse.hpp"
 
 namespace {
 
 using tse_mbo::FlexPacketView;
 using tse_mbo::FlexParser;
 using tse_mbo::NetworkDecoder;
-using tse_mbo::OrderBookReplayer;
 using tse_mbo::PcapReader;
 using tse_mbo::UdpDatagramView;
+using tse_mbo::CaptureRecord;
+using tse_mbo::Tse;
 
 void expect(bool condition, std::string_view message) {
   if (!condition) {
@@ -124,7 +127,7 @@ std::string format_price(std::uint64_t raw_price) {
 
   std::ostringstream out;
   out << std::fixed << std::setprecision(4)
-      << (static_cast<tse_mbo::Price>(raw_price) / tse_mbo::kPriceScale);
+      << tse_mbo::price_to_double(static_cast<tse_mbo::Price>(raw_price));
   return out.str();
 }
 
@@ -386,6 +389,13 @@ struct IndicativeRow {
   tse_mbo::IndicativeMatchResult result;
 };
 
+struct FixtureReplayRecord {
+  CaptureRecord record;
+  std::filesystem::path pcap_path;
+  std::size_t file_index = 0;
+  std::size_t record_index = 0;
+};
+
 void append_sample_lines(FixtureStats& stats,
                          const std::filesystem::path& pcap_path,
                          std::size_t record_index,
@@ -438,12 +448,12 @@ void append_sample_lines(FixtureStats& stats,
   ++stats.sampled_datagrams;
 }
 
-std::vector<IndicativeRow> build_indicative_rows(const OrderBookReplayer& replayer,
+std::vector<IndicativeRow> build_indicative_rows(const Tse& tse,
                                                  const VenueCatalog& venue_catalog) {
   std::vector<IndicativeRow> rows;
-  rows.reserve(replayer.issues().size());
+  rows.reserve(tse.issues().size());
 
-  for (const auto& [issue_code, issue_state] : replayer.issues()) {
+  for (const auto& [issue_code, issue_state] : tse.issues()) {
     if (issue_code == "<control>") {
       continue;
     }
@@ -533,53 +543,77 @@ void write_step1_decoded_message_row(std::ostream& out,
   out << '\n';
 }
 
-FixtureStats inspect_fixture_inputs(const std::vector<std::filesystem::path>& pcap_paths,
-                                    OrderBookReplayer& replayer,
-                                    std::ostream* step1_decoded_messages_csv) {
+FixtureStats inspect_fixture_inputs_by_timestamp(const std::vector<std::filesystem::path>& pcap_paths,
+                                                 tse_mbo::ReplayDataCallback& callback,
+                                                 std::ostream* step1_decoded_messages_csv) {
   PcapReader pcap_reader;
   NetworkDecoder network_decoder;
   FlexParser flex_parser;
 
   FixtureStats stats;
+  std::vector<FixtureReplayRecord> merged_records;
 
-  for (const auto& pcap_path : pcap_paths) {
-    const auto records = pcap_reader.read_all(pcap_path);
+  for (std::size_t file_index = 0; file_index < pcap_paths.size(); ++file_index) {
+    auto records = pcap_reader.read_all(pcap_paths[file_index]);
     stats.capture_records += records.size();
-
+    merged_records.reserve(merged_records.size() + records.size());
     for (std::size_t record_index = 0; record_index < records.size(); ++record_index) {
-      const auto datagram = network_decoder.decode_udp(records[record_index]);
-      if (!datagram) {
-        continue;
+      merged_records.push_back(FixtureReplayRecord{
+          .record = std::move(records[record_index]),
+          .pcap_path = pcap_paths[file_index],
+          .file_index = file_index,
+          .record_index = record_index,
+      });
+    }
+  }
+
+  std::stable_sort(merged_records.begin(), merged_records.end(),
+                   [](const FixtureReplayRecord& lhs, const FixtureReplayRecord& rhs) {
+                     if (lhs.record.ts_sec != rhs.record.ts_sec) {
+                       return lhs.record.ts_sec < rhs.record.ts_sec;
+                     }
+                     if (lhs.record.ts_subsec != rhs.record.ts_subsec) {
+                       return lhs.record.ts_subsec < rhs.record.ts_subsec;
+                     }
+                     if (lhs.file_index != rhs.file_index) {
+                       return lhs.file_index < rhs.file_index;
+                     }
+                     return lhs.record_index < rhs.record_index;
+                   });
+
+  for (const auto& replay_record : merged_records) {
+    const auto datagram = network_decoder.decode_udp(replay_record.record);
+    if (!datagram) {
+      continue;
+    }
+
+    const auto file_name = replay_record.pcap_path.filename().string();
+    update_capture_time_range(
+        stats.capture_time_ranges_by_file[file_name],
+        CaptureTimestamp{datagram->capture_ts_sec, datagram->capture_ts_subsec});
+    ++stats.udp_datagrams;
+    ++stats.endpoint_counts[format_endpoint(*datagram)];
+
+    const auto packets = flex_parser.parse_all(*datagram);
+    append_sample_lines(stats, replay_record.pcap_path, replay_record.record_index + 1U, *datagram, packets);
+
+    for (std::size_t packet_index = 0; packet_index < packets.size(); ++packet_index) {
+      const auto& packet = packets[packet_index];
+      if (!packet.header.issue_code.empty()) {
+        ++stats.issue_packet_counts[packet.header.issue_code];
+        ++stats.issue_packet_counts_by_file[file_name][packet.header.issue_code];
       }
-
-      const auto file_name = pcap_path.filename().string();
-      update_capture_time_range(
-          stats.capture_time_ranges_by_file[file_name],
-          CaptureTimestamp{datagram->capture_ts_sec, datagram->capture_ts_subsec});
-      ++stats.udp_datagrams;
-      ++stats.endpoint_counts[format_endpoint(*datagram)];
-
-      const auto packets = flex_parser.parse_all(*datagram);
-      append_sample_lines(stats, pcap_path, record_index + 1U, *datagram, packets);
-
-      for (std::size_t packet_index = 0; packet_index < packets.size(); ++packet_index) {
-        const auto& packet = packets[packet_index];
-        if (!packet.header.issue_code.empty()) {
-          ++stats.issue_packet_counts[packet.header.issue_code];
-          ++stats.issue_packet_counts_by_file[file_name][packet.header.issue_code];
+      for (std::size_t tag_index = 0; tag_index < packet.tags.size(); ++tag_index) {
+        const auto& tag = packet.tags[tag_index];
+        ++stats.tag_counts[tag.message_type];
+        ++stats.decoded_message_rows;
+        if (step1_decoded_messages_csv != nullptr) {
+          write_step1_decoded_message_row(
+              *step1_decoded_messages_csv, replay_record.pcap_path, replay_record.record_index + 1U,
+              *datagram, packet_index, packet, tag_index, tag);
         }
-        for (std::size_t tag_index = 0; tag_index < packet.tags.size(); ++tag_index) {
-          const auto& tag = packet.tags[tag_index];
-          ++stats.tag_counts[tag.message_type];
-          ++stats.decoded_message_rows;
-          if (step1_decoded_messages_csv != nullptr) {
-            write_step1_decoded_message_row(
-                *step1_decoded_messages_csv, pcap_path, record_index + 1U, *datagram,
-                packet_index, packet, tag_index, tag);
-          }
-        }
-        replayer.apply(packet);
       }
+      callback.on_flex_packet(tse_mbo::normalize_flex_packet(packet));
     }
   }
 
@@ -611,11 +645,16 @@ std::filesystem::path write_fixture_report(const FixtureStats& fixture_stats,
                                            const tse_mbo::ReplayStats& replay_stats,
                                            const std::vector<IndicativeRow>& indicative_rows,
                                            std::size_t issues_tracked,
-                                           const std::vector<std::filesystem::path>& pcap_paths) {
+                                           const std::vector<std::filesystem::path>& pcap_paths,
+                                           bool overwrite_existing = true) {
   const std::filesystem::path results_dir{TSE_MBO_RESULTS_DIR};
   std::filesystem::create_directories(results_dir);
 
   const auto report_path = results_dir / "step1_fixture_report.txt";
+  if (!overwrite_existing && std::filesystem::exists(report_path)) {
+    return report_path;
+  }
+
   std::ofstream out(report_path, std::ios::out | std::ios::trunc);
   if (!out.is_open()) {
     throw std::runtime_error("Failed to create fixture report");
@@ -716,10 +755,16 @@ std::filesystem::path write_fixture_report(const FixtureStats& fixture_stats,
 }
 
 std::filesystem::path write_indicative_csv(const std::filesystem::path& results_dir,
-                                           const std::vector<IndicativeRow>& indicative_rows) {
+                                           const std::vector<IndicativeRow>& indicative_rows,
+                                           std::string_view file_name = "step3_iap_iav_fixture_results.csv",
+                                           bool overwrite_existing = true) {
   std::filesystem::create_directories(results_dir);
 
-  const auto csv_path = results_dir / "step3_iap_iav_fixture_results.csv";
+  const auto csv_path = results_dir / std::string(file_name);
+  if (!overwrite_existing && std::filesystem::exists(csv_path)) {
+    return csv_path;
+  }
+
   std::ofstream out(csv_path, std::ios::out | std::ios::trunc);
   if (!out.is_open()) {
     throw std::runtime_error("Failed to create indicative CSV");
@@ -729,7 +774,7 @@ std::filesystem::path write_indicative_csv(const std::filesystem::path& results_
   for (const auto& row : indicative_rows) {
     out << row.issue_code << ',';
     if (row.result.has_result) {
-      out << std::fixed << std::setprecision(4) << row.result.price;
+      out << std::fixed << std::setprecision(4) << tse_mbo::price_to_double(row.result.price);
     } else {
       out << "0.0000";
     }
@@ -742,8 +787,10 @@ std::filesystem::path write_indicative_csv(const std::filesystem::path& results_
 
 std::filesystem::path write_indicative_audit_csv(const std::filesystem::path& results_dir,
                                                  const std::vector<IndicativeRow>& indicative_rows,
-                                                 const OrderBookReplayer& replayer,
-                                                 const VenueCatalog& venue_catalog) {
+                                                 const Tse& tse,
+                                                 const VenueCatalog& venue_catalog,
+                                                 std::string_view file_name = "step2_order_book_audit.csv",
+                                                 bool overwrite_existing = true) {
   std::filesystem::create_directories(results_dir);
 
   std::vector<std::string> issue_codes;
@@ -752,14 +799,18 @@ std::filesystem::path write_indicative_audit_csv(const std::filesystem::path& re
     issue_codes.push_back(row.issue_code);
   }
 
-  const auto csv_path = results_dir / "iap_iav_audit.csv";
+  const auto csv_path = results_dir / std::string(file_name);
+  if (!overwrite_existing && std::filesystem::exists(csv_path)) {
+    return csv_path;
+  }
+
   std::ofstream out(csv_path, std::ios::out | std::ios::trunc);
   if (!out.is_open()) {
     throw std::runtime_error("Failed to create indicative audit CSV");
   }
 
   tse_mbo::audit::write_indicative_audit_csv(
-      out, issue_codes, replayer.issues(), venue_catalog.issue_names);
+      out, issue_codes, tse.issues(), venue_catalog.issue_names);
   return csv_path;
 }
 
@@ -779,7 +830,7 @@ int main() {
     expect(std::filesystem::exists(venue_json_path), "Fixture venue JSON file should exist");
 
     const auto venue_catalog = load_venue_catalog(venue_json_path);
-    OrderBookReplayer replayer;
+    Tse tse;
     const std::filesystem::path results_dir{TSE_MBO_RESULTS_DIR};
     std::filesystem::create_directories(results_dir);
     const auto step1_decoded_csv_path = results_dir / "step1_decoded_messages.csv";
@@ -789,15 +840,16 @@ int main() {
     }
     write_step1_decoded_messages_header(step1_decoded_csv);
 
-    const auto fixture_stats = inspect_fixture_inputs(pcap_paths, replayer, &step1_decoded_csv);
+    const auto fixture_stats =
+        inspect_fixture_inputs_by_timestamp(pcap_paths, tse, &step1_decoded_csv);
     step1_decoded_csv.close();
-    const auto& replay_stats = replayer.stats();
-    const auto indicative_rows = build_indicative_rows(replayer, venue_catalog);
+    const auto& replay_stats = tse.stats();
+    const auto indicative_rows = build_indicative_rows(tse, venue_catalog);
     const auto csv_path = write_indicative_csv(results_dir, indicative_rows);
-    const auto audit_csv_path = write_indicative_audit_csv(
-        results_dir, indicative_rows, replayer, venue_catalog);
+    const auto audit_csv_path =
+        write_indicative_audit_csv(results_dir, indicative_rows, tse, venue_catalog);
     const auto report_path = write_fixture_report(
-        fixture_stats, venue_catalog, replay_stats, indicative_rows, replayer.issues().size(), pcap_paths);
+        fixture_stats, venue_catalog, replay_stats, indicative_rows, tse.issues().size(), pcap_paths);
 
     expect(fixture_stats.capture_records == 210990, "Unexpected capture record count");
     expect(fixture_stats.udp_datagrams == 210990, "Unexpected UDP datagram count");
@@ -810,7 +862,7 @@ int main() {
     expect(replay_stats.executed_tags == 0, "Unexpected executed tag count");
     expect(replay_stats.executed_with_price_tags == 0, "Unexpected executed-with-price tag count");
     expect(replay_stats.reset_tags == 0, "Unexpected reset tag count");
-    expect(replayer.issues().size() == 344, "Unexpected issue count");
+    expect(tse.issues().size() == 344, "Unexpected issue count");
 
     expect(fixture_stats.tag_counts.at('T') == 210768, "Unexpected T tag count");
     expect(fixture_stats.tag_counts.at('A') == 188936, "Unexpected A tag count");
@@ -831,10 +883,10 @@ int main() {
            "Expected venue mapping for issue 1570");
 
     std::cout << "Step 1 decoded messages CSV written to " << step1_decoded_csv_path << "\n";
-    std::cout << "Fixture report written to " << report_path << "\n";
-    std::cout << "Indicative CSV written to " << csv_path << "\n";
-    std::cout << "Indicative audit CSV written to " << audit_csv_path << "\n";
-    std::cout << "Step 1 fixture checks passed.\n";
+    std::cout << "Step 1 fixture report written to " << report_path << "\n";
+    std::cout << "Step 2 order-book audit CSV written to " << audit_csv_path << "\n";
+    std::cout << "Step 3 IAP/IAV CSV written to " << csv_path << "\n";
+    std::cout << "Step 1/2/3 fixture checks passed.\n";
   } catch (const std::exception& ex) {
     std::cerr << "Test failure: " << ex.what() << '\n';
     return 1;

@@ -12,10 +12,10 @@ namespace {
 
 struct PriceSnapshot {
   Price price = 0;
-  std::uint64_t bid_volume = 0;
-  std::uint64_t ask_volume = 0;
-  std::uint64_t cum_bid = 0;
-  std::uint64_t cum_ask = 0;
+  Volume bid_volume = 0;
+  Volume ask_volume = 0;
+  Volume cum_bid = 0;
+  Volume cum_ask = 0;
 };
 
 IndicativeMatchResult make_result(const PriceSnapshot& snapshot) {
@@ -48,13 +48,13 @@ IndicativeMatchResult calculate_indicative_match(const IssueState& issue_state) 
     return {};
   }
 
-  std::uint64_t running_ask = issue_state.market_ask_volume;
+  Volume running_ask = issue_state.market_ask_volume;
   for (auto& snapshot : snapshots) {
     running_ask += snapshot.ask_volume;
     snapshot.cum_ask = running_ask;
   }
 
-  std::uint64_t running_bid = issue_state.market_bid_volume;
+  Volume running_bid = issue_state.market_bid_volume;
   for (std::size_t index = snapshots.size(); index > 0; --index) {
     auto& snapshot = snapshots[index - 1];
     running_bid += snapshot.bid_volume;

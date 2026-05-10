@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "replay/replay_runner.hpp"
+
 namespace tse_mbo {
 
 struct AppConfig {

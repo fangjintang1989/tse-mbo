@@ -274,6 +274,14 @@ What is still unclear:
 - if two prices match the same executable volume, what the exact tie-break rule is
 - whether imbalance minimization and reference-price proximity rules are required, and if so where they are defined
 
+The official JPX/TSE trading-methodology page also confirms the broader auction context:
+
+- opening prices use the Itayose method
+- market orders are handled as part of the opening auction
+- opening auction pricing is a single-price match process rather than continuous matching
+
+This page is useful as the business-rule reference for auction context, but it does not replace the screenshot-derived step 3 formula below.
+
 ### 2. Opening-auction requirement versus closing-auction appendix examples
 
 The appendix explicitly discusses:

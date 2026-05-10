@@ -13,9 +13,12 @@ find_package(ZLIB REQUIRED)
 add_library(
   tse_mbo_lib
   src/app/app.cpp
+  src/replay/replay_runner.cpp
   src/ingest/network_decoder.cpp
   src/ingest/pcap_reader.cpp
   src/flex/flex_parser.cpp
+  src/flex/flex_message.cpp
+  src/tse/tse.cpp
   src/book/order_book.cpp
   src/book/indicative.cpp
 )

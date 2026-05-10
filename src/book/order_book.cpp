@@ -1,7 +1,9 @@
 #include "book/order_book.hpp"
 
 #include <algorithm>
-#include <bit>
+#include <limits>
+#include <type_traits>
+#include <variant>
 
 #include "book/indicative.hpp"
 
@@ -15,13 +17,18 @@ bool is_opening_eligible_order_condition(std::uint8_t order_condition) noexcept 
 
 }  // namespace
 
-void OrderBookReplayer::apply(const FlexPacketView& packet) {
+void OrderBookReplayer::apply(const NormalizedFlexPacket& packet) {
   ++stats_.packets_seen;
   ++stats_.packets_parsed;
 
-  for (const auto& tag : packet.tags) {
-    ++stats_.tags_seen;
-    apply_tag(packet.header, tag);
+  IssueState& issue_state = issue_state_for(packet.header);
+  issue_state.last_sequence_number = packet.header.sequence_number;
+  issue_state.last_update_number = packet.header.update_number;
+  issue_state.seen_tag_count += packet.tag_count;
+
+  stats_.tags_seen += packet.tag_count;
+  for (const auto& message : packet.messages) {
+    apply_message(issue_state, message);
   }
 }
 
@@ -72,12 +79,12 @@ void OrderBookReplayer::add_order_to_book(IssueState& issue_state, const Order& 
 
 void OrderBookReplayer::remove_order_from_book(IssueState& issue_state,
                                                const Order& order,
-                                               std::uint64_t quantity) {
+                                               Volume quantity) {
   if (!is_opening_eligible(order) || quantity == 0) {
     return;
   }
 
-  const std::uint64_t amount = std::min(quantity, order.quantity);
+  const Volume amount = std::min(quantity, order.quantity);
   if (amount == 0) {
     return;
   }
@@ -112,162 +119,93 @@ void OrderBookReplayer::remove_order_from_book(IssueState& issue_state,
   }
 }
 
-Price OrderBookReplayer::decode_price(std::uint64_t raw_price) noexcept {
-  if (raw_price == kRawMarketOrderPrice) {
-    return kMarketOrderPrice;
-  }
-  return static_cast<Price>(raw_price) / kPriceScale;
-}
+void OrderBookReplayer::apply_message(IssueState& issue_state, const FlexMessage& message) {
+  std::visit(
+      [&](const auto& event) {
+        using Event = std::decay_t<decltype(event)>;
 
-void OrderBookReplayer::apply_tag(const FlexPacketHeader& header, const FlexTagView& tag) {
-  if (tag.bytes.empty()) {
-    return;
-  }
+        if constexpr (std::is_same_v<Event, AddOrderMessage>) {
+          ++stats_.add_tags;
+          Order order;
+          order.order_id = event.order_id;
+          order.side = event.side == 'B' ? Side::buy : event.side == 'S' ? Side::sell : Side::unknown;
+          order.quantity = event.quantity;
+          order.price = static_cast<Price>(event.price);
+          order.order_condition = event.order_condition;
+          order.modification_flag = event.modification_flag;
 
-  IssueState& issue_state = issue_state_for(header);
-  issue_state.last_sequence_number = header.sequence_number;
-  issue_state.last_update_number = header.update_number;
-  ++issue_state.seen_tag_count;
+          const auto existing = issue_state.live_orders.find(order.order_id);
+          if (existing != issue_state.live_orders.end()) {
+            remove_order_from_book(issue_state, existing->second, existing->second.quantity);
+          }
 
-  switch (tag.message_type) {
-    case 'A': {
-      ++stats_.add_tags;
-      if (tag.bytes.size() < 26) {
-        return;
-      }
+          issue_state.live_orders.insert_or_assign(order.order_id, order);
+          add_order_to_book(issue_state, order);
+          recalculate_issue_state(issue_state);
+          return;
+        }
 
-      Order order;
-      order.order_id = read_be_u32(tag.bytes, 5);
-      order.side = parse_side(tag.bytes[9]);
-      order.quantity = read_be_u48(tag.bytes, 10);
-      order.price = decode_price(read_be_u64(tag.bytes, 16));
-      order.order_condition = std::to_integer<std::uint8_t>(tag.bytes[24]);
-      order.modification_flag = std::to_integer<std::uint8_t>(tag.bytes[25]);
+        if constexpr (std::is_same_v<Event, DeleteOrderMessage>) {
+          ++stats_.delete_tags;
+          const auto it = issue_state.live_orders.find(event.order_id);
+          if (it == issue_state.live_orders.end()) {
+            return;
+          }
 
-      const auto existing = issue_state.live_orders.find(order.order_id);
-      if (existing != issue_state.live_orders.end()) {
-        remove_order_from_book(issue_state, existing->second, existing->second.quantity);
-      }
+          remove_order_from_book(issue_state, it->second, it->second.quantity);
+          issue_state.live_orders.erase(it);
+          recalculate_issue_state(issue_state);
+          return;
+        }
 
-      issue_state.live_orders.insert_or_assign(order.order_id, order);
-      add_order_to_book(issue_state, order);
-      recalculate_issue_state(issue_state);
-      return;
-    }
-    case 'D': {
-      ++stats_.delete_tags;
-      if (tag.bytes.size() < 11) {
-        return;
-      }
+        if constexpr (std::is_same_v<Event, ExecuteOrderMessage>) {
+          ++stats_.executed_tags;
+          const auto it = issue_state.live_orders.find(event.order_id);
+          if (it == issue_state.live_orders.end()) {
+            return;
+          }
 
-      const std::uint32_t order_id = read_be_u32(tag.bytes, 5);
-      const auto it = issue_state.live_orders.find(order_id);
-      if (it == issue_state.live_orders.end()) {
-        return;
-      }
+          remove_order_from_book(issue_state, it->second, event.quantity);
+          if (event.quantity >= it->second.quantity) {
+            issue_state.live_orders.erase(it);
+          } else {
+            it->second.quantity -= event.quantity;
+          }
+          recalculate_issue_state(issue_state);
+          return;
+        }
 
-      remove_order_from_book(issue_state, it->second, it->second.quantity);
-      issue_state.live_orders.erase(it);
-      recalculate_issue_state(issue_state);
-      return;
-    }
-    case 'E': {
-      ++stats_.executed_tags;
-      if (tag.bytes.size() < 20) {
-        return;
-      }
+        if constexpr (std::is_same_v<Event, ExecuteWithPriceOrderMessage>) {
+          ++stats_.executed_with_price_tags;
+          const auto it = issue_state.live_orders.find(event.order_id);
+          if (it == issue_state.live_orders.end()) {
+            return;
+          }
 
-      const std::uint32_t order_id = read_be_u32(tag.bytes, 5);
-      const std::uint64_t volume = read_be_u48(tag.bytes, 10);
-      const auto it = issue_state.live_orders.find(order_id);
-      if (it == issue_state.live_orders.end()) {
-        return;
-      }
+          remove_order_from_book(issue_state, it->second, event.quantity);
+          if (event.quantity >= it->second.quantity) {
+            issue_state.live_orders.erase(it);
+          } else {
+            it->second.quantity -= event.quantity;
+          }
+          recalculate_issue_state(issue_state);
+          return;
+        }
 
-      remove_order_from_book(issue_state, it->second, volume);
-      if (volume >= it->second.quantity) {
-        issue_state.live_orders.erase(it);
-      } else {
-        it->second.quantity -= volume;
-      }
-      recalculate_issue_state(issue_state);
-      return;
-    }
-    case 'C': {
-      ++stats_.executed_with_price_tags;
-      if (tag.bytes.size() < 29) {
-        return;
-      }
-
-      const std::uint32_t order_id = read_be_u32(tag.bytes, 5);
-      const std::uint64_t volume = read_be_u48(tag.bytes, 10);
-      const auto it = issue_state.live_orders.find(order_id);
-      if (it == issue_state.live_orders.end()) {
-        return;
-      }
-
-      remove_order_from_book(issue_state, it->second, volume);
-      if (volume >= it->second.quantity) {
-        issue_state.live_orders.erase(it);
-      } else {
-        it->second.quantity -= volume;
-      }
-      recalculate_issue_state(issue_state);
-      return;
-    }
-    case 'R': {
-      ++stats_.reset_tags;
-      for (auto& [_, state] : issues_) {
-        state.live_orders.clear();
-        state.limit_price_levels.clear();
-        state.market_bid_volume = 0;
-        state.market_ask_volume = 0;
-        state.previous_reference_price.reset();
-        state.last_indicative_match = {};
-      }
-      return;
-    }
-    default:
-      return;
-  }
-}
-
-std::uint32_t OrderBookReplayer::read_be_u32(const std::vector<std::byte>& bytes, std::size_t offset) {
-  return (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset])) << 24U) |
-         (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset + 1])) << 16U) |
-         (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset + 2])) << 8U) |
-         static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset + 3]));
-}
-
-std::uint64_t OrderBookReplayer::read_be_u48(const std::vector<std::byte>& bytes, std::size_t offset) {
-  return (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset])) << 40U) |
-         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 1])) << 32U) |
-         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 2])) << 24U) |
-         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 3])) << 16U) |
-         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 4])) << 8U) |
-         static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 5]));
-}
-
-std::uint64_t OrderBookReplayer::read_be_u64(const std::vector<std::byte>& bytes, std::size_t offset) {
-  return (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset])) << 56U) |
-         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 1])) << 48U) |
-         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 2])) << 40U) |
-         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 3])) << 32U) |
-         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 4])) << 24U) |
-         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 5])) << 16U) |
-         (static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 6])) << 8U) |
-         static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + 7]));
-}
-
-Side OrderBookReplayer::parse_side(std::byte value) {
-  const char side = static_cast<char>(std::to_integer<unsigned char>(value));
-  if (side == 'B') {
-    return Side::buy;
-  }
-  if (side == 'S') {
-    return Side::sell;
-  }
-  return Side::unknown;
+        if constexpr (std::is_same_v<Event, ResetMessage>) {
+          ++stats_.reset_tags;
+          for (auto& [_, state] : issues_) {
+            state.live_orders.clear();
+            state.limit_price_levels.clear();
+            state.market_bid_volume = 0;
+            state.market_ask_volume = 0;
+            state.previous_reference_price.reset();
+            state.last_indicative_match = {};
+          }
+          return;
+        }
+      },
+      message);
 }
 
 IssueState& OrderBookReplayer::issue_state_for(const FlexPacketHeader& header) {
