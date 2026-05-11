@@ -9,3 +9,7 @@ results/
 *.csv
 *.log
 ~$*.docx
+
+!output/
+!output/*.csv
+!output/README.md

@@ -1,260 +1,138 @@
 # tse-mbo
 
-Historical TSE FLEX Full MBO processing assignment in C++.
+A C++ application that processes historical Tokyo Stock Exchange FLEX Full MBO PCAP captures, replays the orders into an order book, and writes the last calculated indicative opening-auction price and volume (IAP/IAV) per stock to a CSV.
 
-## Requirements
+The committed deliverable for the sample PCAPs is [`output/iap_iav_20241105.csv`](output/iap_iav_20241105.csv).
 
-- CMake `>= 3.20`
-- A C++20 compiler
-- Zlib development package available to CMake
+## AI tools used
 
-This repo is currently validated in the following environment:
+The assignment asks for disclosure of which AI tools were used.
 
-- OS: Ubuntu 26.04 LTS
-- Compiler: `g++ 15.2.0`
-- Build system: `CMake 4.2.3`
-- Language standard: `C++20`
+- **OpenAI Codex (GPT-5-Codex)** wrote the initial implementation: the gzipped PCAP reader, Ethernet/IPv4/UDP and FLEX decoders, the timestamp-merged replay engine, the order-book replay for `A`/`D`/`E`/`C`/`R`, the venue-JSON loader, the CLI, the fixture-test pipeline that produces the per-tag and per-price-level audit CSVs, and the first 5-condition Itayose implementation. All commits in `git log` are authored by `Codex <codex@openai.com>`.
+- **Anthropic Claude Opus 4.7** ran a review pass on the completed code and made two correctness fixes (Cond 1 enforcement in `src/book/indicative.cpp` and Cond 5.2 equidistance tie-break), cross-checked the algorithm against the JPX *Guide to TSE Trading Methodology — 2024 Edition* Q12, refreshed the unit tests for the fix, trimmed the project, and rewrote this README.
 
-## Assignment Inputs
+## Environment
 
-- `docs/assignment-original.docx` is the original Word assignment file.
-- `docs/protocol-original.docx` is the original Word protocol file.
-- `docs/protocol-original.pdf` is the original protocol PDF file.
-- `docs/assignment-source.md` contains the extracted Word document text.
-- `docs/protocol-source.md` contains the extracted Word protocol text.
-- `docs/protocol-summary.md` is the concise protocol summary plus open questions.
-- `notes/` keeps the working memory, decisions, and implementation plan for this repo.
+This repo was developed and validated on:
 
-The original runtime inputs currently live in the parent workspace:
+- **OS:** Ubuntu 26.04 LTS (also runs on WSL2 / Ubuntu 24.04 with the same toolchain versions)
+- **Compiler:** `g++` 15.2.0
+- **Build system:** CMake 4.2.3 (any `>= 3.20` should work)
+- **Language standard:** C++20
+- **Other:** zlib development headers (Ubuntu: `sudo apt install zlib1g-dev`)
+
+## Build
+
+```bash
+cmake -S . -B build
+cmake --build build -j
+```
+
+## Run
+
+The CLI takes one or more `--pcap` paths, the venue JSON (so we know which issues are stocks and where the per-issue `basePrice` comes from), and an output path:
+
+```bash
+./build/tse_mbo \
+  --pcap ../20241105_051.test.pcap.gz \
+  --pcap ../20241105_052.test.pcap.gz \
+  --venue-json ../TseVenue.20241105.json \
+  --csv-out output/iap_iav_20241105.csv \
+  --summary-only
+```
+
+Drop `--summary-only` for a verbose run that also prints a few live-order summaries. Drop `--csv-out` if you only want the summary.
+
+Expected input files (live alongside the repo, not committed):
 
 - `../20241105_051.test.pcap.gz`
 - `../20241105_052.test.pcap.gz`
 - `../TseVenue.20241105.json`
 
-## Project Layout
+## Output
 
-- The code path is split as a small pipeline:
-  - `src/replay/` loads all PCAPs, stable-sorts capture records by timestamp, and dispatches decoded data
-  - `src/ingest/` decodes gzip PCAP, Ethernet, IPv4, and UDP frames
-  - `src/flex/` parses FLEX headers/tags and normalizes raw messages at the replay boundary
-  - `src/tse/` provides the user-facing engine facade over the book
-  - `src/book/` owns order-book replay and IAP/IAV calculation
-  - `src/app/` handles CLI arguments and CSV export
-  - `src/cli/` is the executable entrypoint
-- `tests/` contains synthetic unit coverage plus real-capture fixture regression coverage.
-- `docs/` contains the original assignment/protocol files, official source notes, and extracted summaries.
-- `notes/` contains working decisions, assumptions, open questions, and the readable IAP/IAV calculation note.
+The deliverable CSV uses the format requested in the assignment:
+
+```text
+symbol,iap,iav
+1382,1777.0000,300
+1417,2213.0000,24800
+...
+```
+
+**Row scope.** The venue JSON marks each instrument with a `securityType`; the assignment defines stocks as `securityType` `01-04`, so non-stock issue codes (e.g. `1570` with `securityType=B1`) are replayed for audit but excluded from the CSV. For the supplied 2024-11-05 captures this leaves **304 stock rows**.
+
+**No-result rows.** 32 of the 304 stocks emit `iap=0.0000, iav=0`:
+
+- `10` rows where replay never accumulates any opening-eligible orders (e.g. `1452`, `152A`, `154A`, `158A`).
+- `22` rows where the book has orders on both sides but no price satisfies Cond 1 (`cum_bid(P) > 0 AND cum_ask(P) > 0`) — non-crossing books and extreme one-sided imbalances (e.g. `1770`, `2481`, `3600`, `3954`, `6164`).
+
+The remaining **272 rows have a valid IAP with `iav > 0`.**
+
+**Supplementary audit CSVs** are produced by the fixture test in `build/results/`:
+
+- `step1_decoded_messages.csv` — one row per decoded FLEX tag.
+- `step1_fixture_report.txt` — counts, endpoints, per-capture issue-code → venue-name mappings.
+- `step2_order_book_audit.csv` — final per-price-level audit with `cum_bid`, `cum_ask`, `tip_up`, `tip_down`; the `selected=yes` row explains the chosen IAP/IAV for each symbol.
+- `step3_iap_iav_fixture_results.csv` — same per-stock output as the deliverable, regenerated by the test.
+
+## Project layout
 
 ```text
 src/
-  cli/
-  app/
-  replay/
-  tse/
-  ingest/
-  flex/
-  book/
-tests/
-docs/
-notes/
+  cli/        executable entry point
+  app/        CLI argument parsing, venue JSON loader, CSV output
+  replay/     PCAP loading, timestamp-merged replay across files
+  ingest/     gzipped PCAP reader + Ethernet/IPv4/UDP decoding
+  flex/       FLEX packet/tag parsing, message normalisation
+  tse/        Tse engine facade
+  book/       order book replay, IAP/IAV calculation (Itayose)
+tests/        unit tests + real-capture fixture regression
+docs/         FLEX protocol spec, JPX 2024 PDF, Itayose algorithm reference
+output/       assignment deliverable CSV + its README
 ```
 
-## Build
-
-Configure:
-
-```bash
-cmake -S . -B build
-```
-
-Build:
-
-```bash
-cmake --build build -j
-```
-
-## Test
-
-The repo includes a small self-contained test binary for the implemented assignment scope.
-
-Run:
+## Tests
 
 ```bash
 ctest --test-dir build --output-on-failure
 ```
 
-Test layout:
+Two test executables:
 
-- `tse_mbo_unit_tests`: self-contained synthetic coverage for PCAP read/decode, FLEX splitting, and replay basics
-- `tse_mbo_fixture_tests`: real-capture regression using the provided sample PCAPs when those files are present next to the repo workspace
+- **`tse_mbo_unit_tests`** — synthetic coverage for the PCAP reader, UDP decoder, FLEX splitting, order-book replay (`A`/`D`/`E`/`C`/`R`), and the full Itayose 5-condition hierarchy (including Cond 3 vs Cond 5 conflict, all three Cond 5 branches, equidistance tie-break, and the no-result cases).
+- **`tse_mbo_fixture_tests`** — full real-capture regression: reads both sample PCAPs, replays everything, writes the four audit CSVs above, and asserts exact counts (capture records, decoded tags per type, issue counts, indicative row count). This is the test that produces the `build/results/step{1,2,3}_*` artifacts.
 
-Fixture result artifact:
+The fixture test is only built when the sample PCAPs and venue JSON are present next to the repo (see `CMakeLists.txt:41`).
 
-- `build/results/step1_fixture_report.txt` with counts, endpoints, sample datagrams, and per-capture `issue_code -> venue name` mappings
-- `build/results/step1_decoded_messages.csv` with one row per decoded FLEX tag from the PCAPs
-- `build/results/step2_order_book_audit.csv` with final per-price audit rows using `bid_price`, `bid_volume`, `ask_price`, `ask_volume`, `cum_bid`, `cum_ask`, `tip_up`, and `tip_down`; the `selected=yes` row explains the final IAP/IAV for a symbol
-- `build/results/step3_iap_iav_fixture_results.csv` with per-stock `symbol,iap,iav` output derived from the sample captures
+## The Itayose rule
 
-Optional audit outputs:
+Step 3 implements the JPX Itayose call-auction price-formation rule. The matching engine applies five conditions in strict priority order — each only narrows the set left by the previous one. Full derivation, edge cases, and the JPX 2024 Trading Methodology Guide Q12 cross-check are in [`docs/itayose-calculation.md`](docs/itayose-calculation.md).
 
-- `build/results/step1_step2_order_book_check.txt` and `build/results/step1_step2_order_book_mismatches.csv` from the independent step1-to-step2 replay checker
-- `build/results/symbol_<issue>_order_book_trace.csv` and `build/results/symbol_<issue>_order_book_trace_summary.txt` from the per-symbol order-by-order trace checker
-
-Replay ordering:
-
-- Replay loads all capture records from all supplied PCAPs first, stable-sorts by capture timestamp, then replays into one rolling order book.
-- For the current fixture captures, this produces `304` stock rows with `0` IAP/IAV mismatches against the merged replay audit.
-
-PCAP-to-output breakdown:
-
-```text
-20241105_051.test.pcap.gz: 171 issue codes
-20241105_052.test.pcap.gz: 172 issue codes
-Overlap between files: 0 issue codes
-        |
-        v
-PCAP decoded issue codes: 343 total
-        |
-        v
-Order-book replay: all 343 issue codes
-        |
-        +--> Non-stock issue codes: 39
-        |    Replayed for audit, excluded from assignment CSV
-        |
-        v
-Stock issue codes by venue JSON securityType 01-04: 304
-        |
-        +--> iav > 0: 273 rows
-        |
-        +--> iav = 0: 31 rows
-```
-
-The `iav = 0` rows split into two groups:
-
-- `10` rows with no IAP/IAV result at all because the replayed book never accumulates any opening-eligible orders
-- `21` rows with a valid IAP but zero IAV because the selected price is a one-sided boundary and `min(cum_bid, cum_ask)` is `0`
-
-| Stage | Count | What It Means |
-| --- | ---: | --- |
-| `20241105_051.test.pcap.gz` issue codes | 171 | First multicast-group capture partition. |
-| `20241105_052.test.pcap.gz` issue codes | 172 | Second multicast-group capture partition. |
-| Overlap between PCAP files | 0 | The files cover different symbols in the same time window. |
-| PCAP decoded issue codes | 343 | Unique symbols found across both captures. |
-| Replayed issue codes | 343 | Every decoded symbol is applied to order-book state. |
-| Non-stock issue codes | 39 | Replayed but excluded from assignment CSV because `securityType` is not `01-04`. |
-| Final stock CSV rows | 304 | Assignment output scope after applying the stock filter. |
-| Stock rows with `iav > 0` | 273 | A non-zero executable auction volume exists. |
-| Stock rows with `iav = 0` | 31 | Symbol is included, but no executable auction volume exists in this capture. |
-
-Both the production CLI and fixture test process every supplied PCAP path. In the normal sample run, `--pcap ../20241105_051.test.pcap.gz --pcap ../20241105_052.test.pcap.gz` means both files are decoded and replayed into the same final order-book state.
-
-Per-capture details:
-
-| PCAP | Time Range JST | Endpoint | Decoded FLEX Tag Rows | Issue Codes | Main Tags |
-| --- | --- | --- | ---: | ---: | --- |
-| `20241105_051.test.pcap.gz` | `07:10:00.448099196` to `08:59:59.999866426` | `10.17.13.58:51551 -> 224.0.220.51:51551` | 193,618 | 171 | `T=94,790`, `A=86,998`, `D=11,548`, `O=171`, `L=111` |
-| `20241105_052.test.pcap.gz` | `07:10:00.448123490` to `08:59:59.999985828` | `10.17.13.68:51552 -> 224.0.220.52:51552` | 236,912 | 172 | `T=115,978`, `A=101,938`, `D=18,713`, `O=172`, `L=111` |
-
-For debug only, an all-issues CSV can be generated without the venue filter. That file has `343` rows: `304` with executable auction volume and `39` with zero executable auction volume.
-
-The assignment text says stocks are security types `1-4`, so issue codes like `1570` with `securityType=B1` are intentionally excluded from the stock-only CSV even though they are still replayed and traced in the order-book logic.
-
-Filtered examples:
-
-- Step 1 to book trace ignores non-book FLEX rows such as `T`, `O`, and `L` because they do not change the order book state.
-- Stock CSV filtering removes non-stock issue codes such as `1570`, `1475`, and `1541` because their venue `securityType` is not `01-04` (`1570` is `B1`).
-- Final stock CSV rows can still have no IAP/IAV result even for stock issues; examples are `1452`, `152A`, `154A`, and `158A`, which replay but never accumulate any opening-eligible book state.
-- Some stock rows do have an IAP but still end with `iav = 0`; examples are `1770`, `2481`, `3600`, and `3954`, where the selected price is a boundary and one side is empty at the match price.
-
-## Run
-
-Summary-only parser/replay run:
-
-```bash
-./build/tse_mbo \
-  --pcap ../20241105_051.test.pcap.gz \
-  --pcap ../20241105_052.test.pcap.gz \
-  --venue-json ../TseVenue.20241105.json \
-  --summary-only
-```
-
-CSV output run:
-
-```bash
-./build/tse_mbo \
-  --pcap ../20241105_051.test.pcap.gz \
-  --pcap ../20241105_052.test.pcap.gz \
-  --venue-json ../TseVenue.20241105.json \
-  --csv-out build/results/step3_iap_iav_results.csv \
-  --summary-only
-```
-
-Verbose run with sample issue output:
-
-```bash
-./build/tse_mbo \
-  --pcap ../20241105_051.test.pcap.gz \
-  --pcap ../20241105_052.test.pcap.gz \
-  --venue-json ../TseVenue.20241105.json
-```
-
-## Assignment Scope
-
-The assignment is being implemented in three stages:
-
-1. read historical packet capture data
-2. replay parsed messages into an order book
-3. calculate indicative match price and volume
-
-This repo currently implements all three stages, including rolling IAP/IAV calculation and CSV export in `src/book/indicative.*`, with `src/tse/` as the user-facing engine facade.
-
-## TSE Itayose Rule (priority-ordered)
-
-Step 3 implements the JPX Itayose call-auction price-formation rule. The matching engine applies five conditions in strict priority order — each only narrows the set left by the previous one. Full derivation, edge cases, wider thoughts, and JPX source links are in [`docs/itayose-calculation.md`](docs/itayose-calculation.md).
-
-1. **Cond 1 — Executable price set.** Keep prices `P` where `cum_bid(P) > 0 AND cum_ask(P) > 0`.
-2. **Cond 2 — Maximum executable volume.** Of those, keep prices that maximize `min(cum_bid, cum_ask)`. Equivalent to `tip_up(P) >= 0 AND tip_down(P) >= 0`, the "Itayose band". Within the band, IAV is constant.
-3. **Cond 3 — Minimum imbalance.** Of those, keep prices that minimize `|cum_bid(P) - cum_ask(P)|`.
+1. **Cond 1 — Executable price set.** Keep prices `P` where `cum_bid(P) > 0 AND cum_ask(P) > 0`. Non-crossing books and single-sided ladders fail Cond 1 everywhere and return no result.
+2. **Cond 2 — Maximum executable volume.** Keep prices that maximise `min(cum_bid, cum_ask)`. Equivalent to `tip_up(P) >= 0 AND tip_down(P) >= 0`, the "Itayose band". IAV is constant within the band.
+3. **Cond 3 — Minimum imbalance.** Keep prices that minimise `|cum_bid(P) - cum_ask(P)|`.
 4. **Cond 4 — Side rule.** If the Cond 3 set has the same residual side at every price: all-sell → lowest, all-buy → highest. Otherwise → Cond 5.
-5. **Cond 5 — Reference-price tie-break.** With `R = base price`: `R > H` → highest, `L ≤ R ≤ H` → closest to `R`, `R < L` → lowest.
-6. **IAV** = `min(cum_bid(P*), cum_ask(P*))`. Boundary cases can legitimately produce `IAV = 0` with a valid IAP.
-7. **Allocation among orders at `P*`** (not implemented in this repo, not derivable from FLEX feed): market orders first, then per-securities-company aggregated quantity.
+5. **Cond 5 — Reference-price tie-break.** With `R` = base price: `R > H` → highest, `L ≤ R ≤ H` → closest to `R` (equidistance prefers the higher price for opening), `R < L` → lowest.
+6. **IAV** = `min(cum_bid(P*), cum_ask(P*))`.
 
-The base price `R` is loaded from `TseVenue.20241105.json`'s `basePrice` field, set once per issue when first observed, and never overwritten by the running IAP. See `docs/itayose-calculation.md` §6 for outstanding work (FLEX `BP` tag decoding for intra-day base updates, halt / special-quote state machine).
+`R` is the venue JSON `basePrice` for the issue, set once when first observed and never overwritten by the running IAP. On an `R` (Reset) tag the running book is cleared and `R` is restored from `basePrice`.
 
-## Current Status
+The JPX 2024 Trading Methodology Guide Q12 lists three opening-price requirements and our implementation maps onto them as: (a) all market orders executed — `cum_*` is seeded with `market_*_volume`; (b) all better-priced limit orders executed — handled by cumulative sums; (c) one side fully executed at `P` — exactly the Cond 2 band, with the Cond 1 guard excluding degenerate "zero-share fully executed" boundaries.
 
-Implemented:
+## Assumptions and limits
 
-- gzipped PCAP reading
-- classic PCAP record decoding
-- Ethernet / IPv4 / UDP decoding
-- FLEX packet header parsing
-- variable-length tag splitting
-- timestamp-merged replay across all supplied PCAPs
-- replay handling for `A`, `D`, `E`, `C`, and `R`
-- FLEX `Bn` prices decoded from raw fixed-point integers into real decimal prices at the replay boundary
-- opening-eligible price-ladder reconstruction, including market-order aggregation
-- rolling indicative opening price/volume calculation using the screenshot-derived rule
-- venue-filtered CSV export in `symbol,iap,iav` format
+- Input capture format is gzipped classic PCAP (little-endian), not PCAP-NG.
+- Network decoder targets Ethernet + IPv4 + UDP frames.
+- A single UDP payload may contain multiple FLEX packets back-to-back; the parser handles this.
+- Order-book replay is implemented for `A`, `D`, `E`, `C`, and `R`. `T`/`O`/`K`/`L`/`II`/`BP`/`MG` are not decoded into structured messages — they are seen as raw tag bytes but do not change book state.
+- FLEX `Bn` prices are decoded once when `A` tags are replayed: the unsigned wire integer uses four implicit decimal places, so raw `17770000` becomes real price `1777.0000`. The 64-bit market-order sentinel is excluded from the limit-price ladder.
 
-Not implemented yet:
+## What is not implemented
 
-- full typed decoding of all protocol tags
-- fully verified split-packet transaction handling
-- exchange-rule transformations beyond the currently replayed opening-eligible state
+Documented for completeness; none are needed to produce the assignment's output on the supplied PCAPs:
 
-## Assumptions And Limits
-
-- Input capture format is gzipped classic PCAP, not PCAP-NG.
-- The current PCAP reader supports little-endian classic PCAP files.
-- The network decoder currently targets Ethernet + IPv4 + UDP frames.
-- A single UDP payload may contain multiple FLEX packets back-to-back; the parser handles this case.
-- Order-book replay is implemented for `A`, `D`, `E`, `C`, and `R`, but protocol coverage is not yet complete for every tag type.
-- FLEX price fields are decoded once when `A` tags are replayed: the unsigned wire integer uses four decimal places, so raw `17770000` becomes real price `1777.0000`; market-order max price is kept as an internal sentinel and excluded from the limit-price ladder.
-- Step 3 implements the JPX Itayose rule described in [`docs/itayose-calculation.md`](docs/itayose-calculation.md). The per-code sketch remains in `notes/step3_iap_iav_calculation.cpp`.
-
-## Notes
-
-- The structure is intentionally split into a thin CLI app plus reusable modules under `src/` because that reads more professionally for an interview submission than a single flat source directory, without adding unnecessary nesting.
-- The current replay engine is an incremental scaffold; synthetic tests are included for the implemented parser and replay paths, but the final submission still needs further protocol-specific validation against more capture scenarios.
+- **FLEX `BP` tag decoding** for intra-day base-price updates (special quote / sequential trade quote regime). The supplied captures contain no BP tags, so static `basePrice` from the venue JSON is sufficient here.
+- **Halt / special-quote / sequential-trade-quote state machine.** Would require typed `O` and `BP` tag decoding.
+- **Closing-auction pre-closing rules** (on-close / Funari order transitions). Out of scope for an opening-auction deliverable.
+- **Per-securities-company allocation among orders at `P*`.** The JPX rule allocates by aggregated quantity per securities company, but the FLEX MBO feed carries no participant identifier on the wire — this rule cannot be implemented from PCAP-only data. Documented in `docs/itayose-calculation.md` §3 step 7.

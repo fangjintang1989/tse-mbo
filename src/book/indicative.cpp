@@ -62,12 +62,16 @@ IndicativeMatchResult calculate_indicative_match(const IssueState& issue_state) 
     snapshot.cum_bid = running_bid;
   }
 
-  // Cond 1 + Cond 2: prices where bids and offers match at the maximum executable
-  // volume. The (tip_up >= 0 && tip_down >= 0) filter is mathematically equivalent
-  // to "max min(cum_bid, cum_ask)" within the price ladder.
+  // Cond 1: both sides must be able to fill at P (cum_bid > 0 AND cum_ask > 0).
+  // Cond 2: among Cond 1 prices, keep those that maximize min(cum_bid, cum_ask).
+  // The (tip_up >= 0 && tip_down >= 0) filter is equivalent to max-min within
+  // the ladder; combined with Cond 1 it gives the Itayose band.
   std::vector<const PriceSnapshot*> band;
   band.reserve(snapshots.size());
   for (const auto& snapshot : snapshots) {
+    if (snapshot.cum_bid == 0 || snapshot.cum_ask == 0) {
+      continue;
+    }
     const std::int64_t tip_up = static_cast<std::int64_t>(snapshot.cum_ask) -
                                 static_cast<std::int64_t>(snapshot.cum_bid) +
                                 static_cast<std::int64_t>(snapshot.bid_volume);
@@ -135,11 +139,13 @@ IndicativeMatchResult calculate_indicative_match(const IssueState& issue_state) 
       } else if (reference_price < lowest) {
         chosen = cond3.front();
       } else {
+        // Cond 5.2: ref inside the band. Pick closest to ref; on exact
+        // equidistance, prefer the higher price (opening-auction convention).
         const PriceSnapshot* best = cond3.front();
         std::int64_t best_distance = std::abs(best->price - reference_price);
         for (const auto* snapshot : cond3) {
           const std::int64_t distance = std::abs(snapshot->price - reference_price);
-          if (distance < best_distance) {
+          if (distance <= best_distance) {
             best = snapshot;
             best_distance = distance;
           }

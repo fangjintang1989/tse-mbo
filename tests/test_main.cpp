@@ -410,10 +410,8 @@ void test_order_book_replayer_tracks_opening_eligible_orders_only() {
          "On-close buy should be excluded");
   expect(issue.limit_price_levels.at(tse_mbo::make_price(10)).ask_volume == 250,
          "On-open sell should be included");
-  expect(issue.last_indicative_match.has_result, "Single-sided book should still produce a boundary result");
-  expect_price(issue.last_indicative_match.price, tse_mbo::make_price(10),
-               "Boundary result should use the available price level");
-  expect(issue.last_indicative_match.volume == 0, "Single-sided boundary result should have zero volume");
+  expect(!issue.last_indicative_match.has_result,
+         "Single-sided book has no Cond 1 price and should produce no result");
 }
 
 void test_order_book_replayer_replaces_existing_order_at_same_id() {
@@ -457,7 +455,7 @@ void test_indicative_match_supports_market_orders() {
   expect(result.volume == 20, "Market orders should contribute to IAV");
 }
 
-void test_indicative_match_uses_direction_reversal_tie_break() {
+void test_indicative_match_returns_no_result_for_non_crossing_book_with_low_ref() {
   tse_mbo::IssueState issue_state;
   issue_state.issue_code = "7203";
   issue_state.previous_reference_price = tse_mbo::make_price(10);
@@ -466,9 +464,7 @@ void test_indicative_match_uses_direction_reversal_tie_break() {
 
   const auto result = tse_mbo::calculate_indicative_match(issue_state);
 
-  expect(result.has_result, "Reversal search should still yield a result");
-  expect_price(result.price, tse_mbo::make_price(10), "Tie reversal should keep the current cursor candidate");
-  expect(result.volume == 0, "The candidate volume should be preserved");
+  expect(!result.has_result, "Non-crossing book has no Cond 1 price regardless of reference");
 }
 
 void test_indicative_match_picks_closest_to_reference_price() {
@@ -476,17 +472,16 @@ void test_indicative_match_picks_closest_to_reference_price() {
   issue_state.issue_code = "7203";
   issue_state.previous_reference_price = tse_mbo::make_price(13);
   issue_state.limit_price_levels[tse_mbo::make_price(10)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(15)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(15)].ask_volume = 5;
   issue_state.limit_price_levels[tse_mbo::make_price(20)].ask_volume = 5;
-  issue_state.limit_price_levels[tse_mbo::make_price(15)].bid_volume = 0;
-  issue_state.limit_price_levels[tse_mbo::make_price(15)].ask_volume = 0;
 
   const auto result = tse_mbo::calculate_indicative_match(issue_state);
 
   expect(result.has_result, "Multi-valid-price book should produce a match");
   expect_price(result.price, tse_mbo::make_price(15),
-               "Should pick the in-band price closest to the previous reference price");
-  expect(result.volume == 0,
-         "IAV at the chosen price should be min(cum_bid, cum_ask)");
+               "Cond 1 leaves only the crossing price; result should be 15");
+  expect(result.volume == 5, "IAV at the chosen price should be min(cum_bid, cum_ask)");
 }
 
 void test_indicative_match_accepts_band_edge_with_zero_tip() {
@@ -513,12 +508,8 @@ void test_indicative_match_returns_zero_volume_for_non_crossing_book() {
 
   const auto result = tse_mbo::calculate_indicative_match(issue_state);
 
-  expect(result.has_result,
-         "Non-crossing book yields a TSE-band result at the boundary prices");
-  expect_price(result.price, tse_mbo::make_price(20),
-               "Closest in-band price to the reference should win");
-  expect(result.volume == 0,
-         "Non-crossing book should produce zero match volume");
+  expect(!result.has_result,
+         "Non-crossing book has no Cond 1 price (every level has cum_bid=0 or cum_ask=0)");
 }
 
 // Cond 3 takes precedence over Cond 5: when two band prices have equal IAV,
@@ -622,6 +613,27 @@ void test_indicative_match_cond5_2_ref_inside_band() {
                "Cond 5.2: ref inside Cond 3 band -> pick reference itself");
 }
 
+// Cond 5.2 equidistance: when two band prices are equally far from ref,
+// opening-auction convention picks the higher price.
+void test_indicative_match_cond5_2_equidistant_prefers_higher() {
+  tse_mbo::IssueState issue_state;
+  issue_state.issue_code = "C5_2_TIE";
+  // Two equidistant flat prices around ref=105. Both sides have non-zero
+  // volume at each, so Cond 1 passes; Cond 3 leaves both; mixed sign on
+  // signed imbalance triggers Cond 5.
+  issue_state.limit_price_levels[tse_mbo::make_price(100)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(100)].ask_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(110)].bid_volume = 5;
+  issue_state.limit_price_levels[tse_mbo::make_price(110)].ask_volume = 5;
+  issue_state.previous_reference_price = tse_mbo::make_price(105);
+
+  const auto result = tse_mbo::calculate_indicative_match(issue_state);
+
+  expect(result.has_result, "Equidistant tie should still match");
+  expect_price(result.price, tse_mbo::make_price(110),
+               "Cond 5.2 equidistance: prefer higher price (opening convention)");
+}
+
 // Market orders alone (no limits) cannot form a contract price.
 void test_indicative_match_market_only_no_match() {
   tse_mbo::IssueState issue_state;
@@ -678,13 +690,14 @@ int main() {
     test_order_book_replayer_tracks_opening_eligible_orders_only();
     test_order_book_replayer_replaces_existing_order_at_same_id();
     test_indicative_match_supports_market_orders();
-    test_indicative_match_uses_direction_reversal_tie_break();
+    test_indicative_match_returns_no_result_for_non_crossing_book_with_low_ref();
     test_indicative_match_picks_closest_to_reference_price();
     test_indicative_match_accepts_band_edge_with_zero_tip();
     test_indicative_match_returns_zero_volume_for_non_crossing_book();
     test_indicative_match_cond3_min_imbalance_beats_cond5();
     test_indicative_match_cond5_1_ref_above_band();
     test_indicative_match_cond5_2_ref_inside_band();
+    test_indicative_match_cond5_2_equidistant_prefers_higher();
     test_indicative_match_cond5_3_ref_below_band();
     test_indicative_match_market_only_no_match();
     test_app_replays_multiple_pcaps_by_capture_time();

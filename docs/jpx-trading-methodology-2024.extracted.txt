@@ -1,0 +1,1610 @@
+2024 Edition
+                                 Contents
+SECTION 1 – Background information
+
+  Q1	What is the relationship between investors, securities companies, and
+      securities exchanges such as the Tokyo Stock Exchange?
+  Q2	How are orders placed with securities companies dealt with in the TSE trading
+      system?
+  Q3  What time (auction trading sessions) is trading conducted at the TSE?
+  Q4  What types of orders are there?
+  Q5	Are there orders that are placed with specific conditions, such as execution
+      only at the opening auctions or afternoon session closing auctions?
+  Q6  What is the price increment (tick sizes) when placing orders?
+  Q7  How are the “daily price limits” determined?
+  Q8  What price is used as the basis (base price) for the daily price limit?
+  Q9  What is a “trading unit”?
+  Q10 How do investors exchange funds and the like?
+
+
+SECTION 2 – How trading works on TSE
+
+  Q11   How are stock prices determined? (Itayose and Zaraba methods)
+  Q12   How are opening prices determined? (Conditions for Itayose method)
+  Q13   How are stock prices determined during a continuous auction (Zaraba)?
+  Q14	How is the priority of order execution decided? (Principles of Price and Time
+        Priority)
+  Q15	Orders before the determination of the opening price, etc. are handled as
+        orders accepted at the same time (i.e., simultaneous orders). How is order
+        priority determined and how are such orders executed?
+  Q16 	How are simultaneous orders allocated? (Part 1) (Method to determine
+        quantity allocated to each securities company)
+  Q17	How are simultaneous orders allocated? (Par t 2) (Allocation of orders
+        according to priority with each execution)
+  Q18	Is it possible for stock prices to jump suddenly, for example from ¥1,000 to
+        ¥1,100?
+  Q19   What is a “special quote”?
+  Q20	How are prices determined when a special quote is indicated? (Part 1)
+        (E.g.1: Trading is executed at a price widely divergent from the last price)
+  Q21   How are prices determined when a special quote is indicated? (Part 2)
+        (E.g. 2: No execution due to order imbalance)
+  Q22	Why are special quotes sometimes not renewed to their daily limit prices?
+        (Why are there cases where an SQ is not renewed?)
+  Q23  What is a “sequential trade quote”?
+  Q24  How are prices determined when a sequential trade quote is indicated?
+  Q25  What is a “closing auction at the limit price”?
+  Q26  How are closing auctions at the limit price processed?
+  Q27  What is a “closing auction session”?
+  Q28	How are orders executed in the closing auction session (Itayose at the close of
+       the afternoon session)?
+  Q29  Is there a special mechanism for trading newly-listed stocks?
+  Q30  What is a trading halt?
+  Q31	What are a Security to Be Delisted, Security Under Supervision, Security on
+       Special Alert, and Alert Regarding Unclear Information, etc.?
+  Q32  When does TSE broaden the daily price limits?
+
+
+SECTION 3 – TSE market information services
+
+  Q33    What kind of market information is available to investors?
+  Q34    How are the ten best offer/bid quotes indicated?
+  Q35    How are special quotes indicated?
+  Q36    How are pre-opening quotes indicated?
+
+
+SECTION 4 – How trading works on ToSTNeT
+
+  Q37    What is “ToSTNeT”?
+  Q38    What are the trading rules and criteria for ToSTNeT?
+  Q39    What is Share Buyback (or Repurchase) via ToSTNeT?
+  SECTION 1
+— Background information —
+
+
+
+
+            1
+          What is the relationship between investors, securities
+ Q1       companies, and securities exchanges such as the Tokyo
+          Stock Exchange?
+A securities exchange does not only have the role of establishing a market to provide
+investors with a venue for trading, but also performs operations such as disseminating
+market information and ensuring appropriate disclosure by listed companies, in order to
+provide fair and smooth trading on its markets. (At Tokyo Stock Exchange (TSE),
+regulatory business, which includes examining companies seeking to list on the market,
+and market surveillance of whether trading is conducted in a fair manner, is entrusted to
+Japan Exchange Regulation, the self-regulatory organization.)
+
+The parties who may be directly involved in trading at securities exchanges are limited to
+trading participants of the exchange. In other words, orders placed by individual investors
+and other securities companies who are not trading participants of the exchange will be
+routed to the exchange market through a trading participant.
+
+For example, Customer A of securities company A (a trading participant) will be able to
+place orders directly through securities company A. On the other hand, an order placed
+by Customer B through securities company B (not a trading participant) will be further
+routed through securities company A.
+
+After receiving the brokerage order, securities company A will screen the order for insider
+trading and other manipulative intent before sending it to the TSE market. Once securities
+company A is certain that the order is legitimate, it will be placed and declared as a
+brokerage order.
+
+Trading participants are also able to make trades on their proprietary accounts, that is
+conduct trading using their own cash and securities. They must declare such orders as
+proprietary orders when they send them to the market. Trading on proprietary accounts is
+often referred to as “dealing.”
+
+The sections responsible for brokerage and proprietary trading are strictly segregated
+within a securities company so that there is no possibility of information being shared
+between the two.
+
+Orders placed through securities company A will be sent and executed with the securities
+company A as the party involved in the trade, and settlement at the exchange will also be
+performed through the same securities company.
+
+
+
+
+                                              3
+Trading at a securities exchange is performed in this way through securities companies.
+There are several different methods for individual investors to place orders with securities
+companies such as internet or online trading, or trading through staff of securities
+companies. Individual investors are thus able to select a method most suited to their
+needs, basing their decisions on commission rates, and access to market information.
+
+(In order to facilitate understanding, trading participants are referred to as securities
+companies in other parts of this guide.)
+
+
+
+
+                                           4
+          How are orders placed with securities companies dealt with
+ Q2       in the TSE trading system?
+Previously, transactions at TSE were handled by people on the trading floor, known as
+floor-traders. Many people are probably familiar with the scene of floor-traders of various
+securities companies competing with each other’s bids and offers on a bustling trading
+floor. However, nowadays trading no longer goes through floor-traders, because trading
+on the market has been completely computerized.
+
+1. Orders from Securities Companies to TSE
+Orders placed by investors to securities companies who are trading participants are sent
+through the network to TSE.
+
+2. Processing of Order Acceptance at TSE
+All orders received from securities companies are sorted according to, amongst other
+things, the securities company (which company placed the order), the name of the issue,
+the number of stocks, whether it is a buy or sell order, the order price, the order type, and
+the time of order acceptance (the time the order reached TSE), and registered to the
+trading system.
+
+3. Trade Execution at TSE
+All registered orders are executed according to TSE trading rules, and execution notices
+are immediately sent to the securities companies electronically through the network.
+
+
+
+
+                                               5
+4. Dissemination of market information
+In addition to accepting orders and trade execution, at the same time TSE also
+disseminates market information such as “what is the price of X stock”, and “how many
+shares of Y stocks can be bought or sold at what price” on a real-time basis, allowing
+individual investors to make informed decisions. Normally, individual investors access
+such information via information vendor terminals and securities companies’ websites.
+
+Please see Q33 for more details on information provided by TSE.
+
+
+
+
+                                         6
+          What time (auction trading sessions) is trading conducted at
+ Q3       the TSE ?
+Trading hours at TSE are split into two sessions: 09:00~11:30 and 12:30~15:30. (“closing
+auction session” from 15:25 to 15:30) The trading session in the morning is known as
+the “morning trading session”; the one in the afternoon is the “afternoon trading session”.
+(Please see Q27 for more details on the closing auction session. )
+
+The first transactions of each session are executed at the “opening auction”, and they are
+known as the “morning opening auction” and “afternoon opening auction” for the morning
+and afternoon trading sessions respectively. The end of the sessions is when the “closing
+auction” is conducted, and they are known as the “morning closing auction” and
+“afternoon closing auction” for the morning and afternoon trading sessions respectively.
+The period other than the opening and closing auctions, are known as “continuous
+auction” or “Zaraba”.
+
+The hours at which orders from securities companies are accepted by TSE are 08:00~
+11:30 and 12:05~15:30, as illustrated in the diagram below.
+
+
+
+
+                                          ※ Closing Auction Session from 15:25 to 15:30
+
+This diagram only illustrates the hours that TSE accepts orders from securities companies.
+This may be different from the hours investors may place orders with securities
+companies. Indeed, the Internet and other developments mean that some securities
+companies accept orders 24 hours a day.
+
+Orders at TSE are valid for only one day, so if an order is not executed and a customer
+wishes for it to be placed on the following day, a securities company must place the order
+again in the morning of the following day.
+
+
+
+
+                                              7
+ Q4       What types of orders are there?
+
+Basically there are two types of orders available on the TSE equities market: limit orders
+and market orders.
+
+Limit orders
+Limit orders are orders at specific prices, meaning that investors have stated that they
+want to “buy at not more than XX yen, or sell at not less than XX yen”.
+In other words a limit order represents the lowest/highest price at which the investor is
+willing to sell/buy. Limit orders offer investors the reassurance that they will not find
+themselves selling/buying at an unexpectedly low/high price. Consequently though, limit
+orders will not be executed if there are no orders matching the specific price requirements.
+
+Market orders
+Market orders are orders by investors who want to “sell or buy at any available price”.
+They do not indicate specific prices, but are executed at the available price on the market
+at the time.
+Market orders take precedence over limit orders, and its ease of execution is a key merit.
+However, since no price conditions are set for market orders, it is possible that an order
+may be executed at an unexpected price such as buying at ¥1,050 instead of the expected
+price of ¥1,000. Thus it is very important that investors exercise caution when placing
+market orders.
+
+
+
+
+                                           8
+          Are there orders that are placed with specific conditions,
+ Q5       such as execution only at the opening auctions or afternoon
+          session closing auctions?
+As explained in Q4, the two main types of orders are limit and market orders. There are
+some specific execution conditions which may be attached to orders. Some examples are
+given below.
+
+ 1) Orders to be executed only during the opening auction
+ 2) Orders to be executed only during the closing auction
+ 3) Limit orders that become market orders at the closing auction if not already executed
+ 4) IOC (Immediate or Cancel) orders
+
+1) “Orders to be executed only during the opening auction” are orders that are only
+executed at the opening auctions of either the morning session or the afternoon session,
+where the opening price for the day or after the break in the day is determined. When
+placing such orders with your securities company, attach a condition by giving specific
+instructions, for example “I want to buy 1,000 shares of XX company at ¥1,500 at the
+opening auction of the afternoon session (when the opening price for the afternoon
+session is determined).”
+Such orders are only effective during the opening auction. It follows that if a customer’s
+order was not executed during the opening auction, it will become void.
+In addition, in the case of an order placed for execution during the opening auction of the
+morning session, if it was not executed during the morning session (opening price was not
+determined), the order will be brought over to the afternoon session.
+
+2) “Orders to be executed only during the closing auction” (also known as on-close orders)
+are orders that are only executed at the closing auctions of either the morning session
+(11:30) or the afternoon session (15:30). When placing such orders with your securities
+company, attach a condition by giving specific instructions, for example “I want to buy 1,000
+shares of XX company at ¥1,500 at the closing auction of the afternoon session.”
+Such orders are only effective during the closing auction. It follows that if a customer’s
+order was not executed during the closing auction, it will become void.
+In addition, if an order that is placed for execution at the closing auction of the morning
+session was not executed at the closing auction of the morning session, it will not be
+brought over to the afternoon session.
+
+3) “Limit orders that become market orders at the closing auction if not already executed”
+(also known as funari orders) are orders that are effective as limit orders up till the end
+of the auction sessions, and in case they are not executed during the continuous auction
+or Zaraba, they become market orders during the morning closing auction and the pre-
+closing session (Please see Q27 for more details on the pre-closing session). An example
+of use is a case where a customer says, “It would be best if I could buy them at ¥1,000 or
+less, but if I can’t do that before the closing auction, I will change the order to a market
+order, because I want to buy the shares at any price.”
+
+4) “IOC (Immediate or Cancel) Orders” are orders with the condition to immediately
+execute all or part of the quantity of the order at a specified or better price and the
+remaining unexecuted quantity of such order will become void. They are not available in
+situations where execution does not occur immediately, for example before the opening
+auction and during a trading halt.
+
+
+                                               9
+ Q6       What is the price increment (tick sizes) when placing orders?
+
+When placing limit orders, the prices at which you can place orders are based on price
+increments, which are also known as “tick sizes”. Tick sizes are determined by the stock
+price.
+For example, if you wish to place an order for a stock priced at ¥3,000 or less, you can
+place orders in ¥1 intervals. However, orders for a stock priced above ¥3,000 but ¥5,000
+or less cannot be placed at ¥1 intervals at prices such as ¥3,001 or ¥3,673. Instead,
+orders may only be placed at ¥5 intervals, for example at ¥3,005 or ¥3,675.
+
+Narrower tick sizes are applied to TOPIX500 (TOPIX100 and TOPIX Mid400) constituents,
+which are high liquidity stocks, to offer price improvement and shorter waiting times till
+order execution. And as a general rule, narrower tick sizes are applied to ETFs and ETNs.
+
+
+
+
+                                         10
+ Q7       How are the “daily price limits” determined?
+
+Stock prices are determined on a real-time basis by the equilibrium between bids and
+offers. However, prices do not reach 10 or 20 times the opening price during the day.
+This is because TSE sets a price range, known as the “daily price limit”, within which price
+fluctuations are limited in a single trading day.
+
+Stock prices should ideally be determined based on a free market, and price restrictions
+are deemed undesirable. However, because stock prices reflect investor psychology,
+there may be sudden large price fluctuations which lead to investors incurring unexpected
+losses. To prevent such wild volatility, TSE sets daily price limits for each stock, within the
+range of which stock prices may fluctuate safely.
+
+Daily price limits are set in absolute yen basically according to prices such as the previous
+day’s closing price (This is known as the “base price”. Please see Q8 for more details on
+the base price). Daily price limits are set out in the table on the next page. For example, if
+the previous day’s closing price is ¥1,000, the lower and upper limits will be ¥700 and
+¥1,300 respectively. No trading may take place outside of these limits.
+
+Daily price limits also apply to orders, so that no limit orders may be placed outside of
+these limits.
+
+
+
+
+                                                11
+12
+          What price is used as the basis (base price) for the daily
+ Q8       price limit?
+The price used as the basis (base price) for the daily price limit for a day is basically the
+closing price of the previous day, except in cases where a special quote was displayed at
+the closing or the previous day was an ex-dividend day. (Please see Q19 for more details
+on special quotes.)
+
+Special quotes
+Even in the event that there is trading during the “Zaraba” or continuous auction session, if
+there is a large volume of buy or sell orders at the close of the afternoon session, there
+may be a case where a special quote is displayed at the close of Zaraba trading (at 15:25)
+and the afternoon session ends without any executions at the afternoon closing auction. In
+such cases, the special quote is not the last execution price during “Zaraba”, but instead
+indicates the balance of the order book at the close of the afternoon session.
+
+For example, if a stock’s last recorded transaction at 15:20 is at ¥1,000 but there are no
+subsequent transactions, and due to a deluge of buy orders a special bid quote at ¥1,030
+is displayed at the close of Zaraba trading and the afternoon session ends without any
+executions at the afternoon closing auction, then the following day’s base price will be
+¥1,030, not ¥1,000 (the daily price limit is ¥300, and the lower and upper limits are ¥730
+and ¥1,330 respectively). If the stock price moves to ¥1,330 on the following day, even
+though it seems that the price has risen by ¥330 since the last execution price, it had
+essentially risen by ¥300.
+
+This is the main reason why there may be discrepancies between the daily price limits
+calculated using the closing prices reported in newspapers and such media organizations
+and the actual daily price limits; these closing prices are usually last execution prices, not
+last special quotes.
+
+Ex-dividend and ex-rights day
+In the case where the rights such as those to receive dividends on shares or subscribe to
+new shares are granted to shareholders, the base price will be adjusted. Such rights are
+granted to shareholders on a particular record date. Investors who become shareholders
+after the record date (known as “ex-dividend day” and “ex-rights day”) will not be eligible
+for such rights.
+
+It follows that investors who become shareholders before the record date will be eligible to
+receive dividends, while those who become shareholders after that will not. After the
+record date, the share price will theoretically be lower by the amount equivalent to the
+dividend amount per share.
+
+
+
+
+                                               13
+For example, in cases that the expected dividend is ¥5 per share, the base price after the
+ex-dividend day is the previous day’s closing price minus ¥5 and the daily price limit is
+based on this revised base price. Therefore, if the previous day’s closing price was
+¥1,100, the base price after the ex-dividend date will be ¥1,095. The daily price limit on
+the following day will be ¥300 and trading may take place between the lower and upper
+limits of ¥795 and ¥1,395 respectively.
+
+In cases relating to rights allotment, we will not be able to do a direct comparison with the
+previous day because the conditions are different.
+
+
+
+
+                                           14
+ Q9       What is a “trading unit”?
+
+Stocks at a securities exchange are traded in quantities that are integral multiples of the
+predetermined trading unit of each issue.
+The trading unit of common shares for all listed domestic companies is standardized to
+100 shares, while that of ETFs, REITs, listed foreign companies, and other products varies
+depending on the issue.
+
+For example, the trading unit for NIPPON STEEL CORPORATION (code: 5401) is 100
+shares, as it is trading of common shares of a domestic listed company. It follows that
+trading will be in lots of 100, 200, or 300 shares. In the case of Nikkei 225 Exchange
+Traded Fund (code: 1321), on the other hand, the trading unit is set to one unit and said
+product can be traded in one unit.
+
+The most accessible source of information on trading units of individual stocks is probably
+the markets section in the newspaper and the JPX website. You will be able to find out the
+trading unit for each individual stock.
+
+As less variation in trading units results in a reduction in erroneous order placements
+in stock trading, trading units of all common stocks of listed domestic companies were
+consolidated to 100 shares on October 1, 2018, so that the market will be more convenient
+to investors and market users as a whole.
+
+
+
+
+                                              15
+Q10 How do investors exchange funds and the like?
+Investors are required to settle their transactions by hand over purchase money, etc. to
+their securities company on the two business days after the trade date.
+
+For example, transactions on Monday need to be settled on Wednesday, and those on
+Friday on the following Tuesday.
+
+Relationship between transaction and settlement
+
+                                          Transaction 1
+                                          Transaction 2
+                                          Settlement of Transaction 1 (T+2)
+        Record date for dividend          Settlement of Transaction 2 (T+2)
+        payment, etc. to shareholders
+
+
+
+
+                                        16
+   SECTION 2
+— How trading works on TSE —
+
+
+
+
+             17
+Q11 How are stock prices determined? (Itayose and Zaraba
+    methods)
+At the TSE, stock prices are determined by two methods, the Itayose and Zaraba
+methods. The Itayose method is mainly used to decide opening and closing prices in
+consideration of the balance between buy and sell orders; the Zaraba method is used to
+execute orders as and when they enter the order book during continuous auction trading.
+
+Itayose
+The Itayose method is used to determine prices in the following situations:
+1. The opening and closing prices for the morning and afternoon sessions.
+2. The initial price after resumption of trading after a trading halt.
+3. The price when a special quote is indicated.
+   (Please see Q19 for an explanation of special quotes.)
+4. The price when a sequential trade quote is indicated.
+   (Please see Q23 for an explanation of sequential trade quotes)
+
+The following table illustrates the order book at the start of the morning session. Orders
+are accepted from 08:00, but no transactions take place before the session opens at
+09:00. This means that there are many sell and buy orders at various prices. It is in such
+situations that the Itayose method is used to execute orders.
+
+
+
+
+                                              19
+Zaraba
+On the other hand, the Zaraba method is used in a continual process to match orders
+during the rest of the trading session. New orders are matched with those already in the
+order book. After the opening price is determined, trading is executed as below when the
+order book is not crossed with orders.
+
+
+
+
+The TSE uses these two different methods to deal with different order book conditions.
+
+
+
+
+                                         20
+Q12 How are opening prices determined? (Conditions for Itayose
+    method)
+The term “Itayose” comes from the use of paper order books (Ita) used to record offers
+(sell quotes) and bids (buy quotes) on the left and right respectively, with prices indicated
+in the center, when prices were determined manually. The price is determined using the
+following 3 requirements:
+   a. All sell/buy market orders must be executed
+   b. All limit orders to sell/buy at prices lower/higher than the execution price must be
+       executed
+   c. At the execution price, the entire amount of either all sell or all buy orders must be
+       executed
+
+The following table represents the order book. The center column indicates prices, the
+second column from the left shows the volume of individual offers (sell), and the far left
+column shows the aggregate volume of offers. The right side of the table is a mirror image
+and represents the bid side (buy), with individual bids in the second column from the right
+and the aggregate volume in the far right column. Market orders on both sides are
+displayed in the first line at the top.
+
+We start by focusing on requirements (a), (b) and (c) as set out above in order to
+determine the opening price. These 3 conditions aim to determine the price at which the
+amount of the aggregated* bids and offers balance out. In order to find this price, we look
+at the prices at which the aggregated bids and offers invert. In this case these are ¥501
+and ¥500, so the opening price is likely to be one of these two prices.
+
+
+
+
+                                               21
+So let’s see what happens when we assume an opening price of ¥500.
+
+
+
+
+                                      22
+Now, let’s double-check that ¥501 will not be determined as the opening price.
+
+
+
+
+                                             23
+Q13 How are stock prices determined during a continuous auction
+    (Zaraba)?.
+The Zaraba method, or continuous auction method, is the process used to match
+individual incoming orders with orders in the order book after the opening price has been
+determined and before the closing price is determined. The tables below illustrate how the
+Zaraba method works.
+
+Let’s see an example of how prices are determined during Zaraba.
+
+
+
+
+                                         24
+Transactions are carried out continuously in this way under the Zaraba method after
+determination of the opening price during trading hours.
+
+
+
+
+                                          25
+Q14 How  is the priority of order execution decided?
+    (Principles of price and time priority)
+During auction trading, order priority is determined based on two principles: price and time
+priority. This ensures that all orders are handled fairly.
+The principles of time and price priority apply across the board to all orders, regardless of
+whether they are orders from general investors and proprietary orders of securities
+companies. Orders with high priority are executed first.
+
+Principle of price priority
+The lowest sell and highest buy orders take precedence over other orders. This method is
+the same as that applied in a simple bidding auction.
+For example, a buy order at ¥1,010 has priority over a buy order at ¥1,000, and will be
+executed first.
+
+Principle of time priority
+Among orders at the same price, the order accepted earliest by the exchange takes
+precedence.
+
+Let’s take a look at how order priority is determined based on the two principles.
+
+Buy and sell orders are placed as illustrated below.
+
+
+
+
+                                           26
+Although there are sell orders at both ¥501 and ¥502, those at ¥501 take precedence over
+those at ¥502 as a result of price priority. Of the three orders at ¥501, in terms of time
+priority, securities company F’s order takes precedence, followed by securities company E
+and then securities company D. These are then followed by the orders at ¥502, with
+securities company C’s order taking precedence over securities company A’s order.
+
+Looking at the buy side of the order book, we can see that there are orders at ¥499 and
+¥500. In this case the orders at ¥500 take precedence due to price priority. Of the three
+orders at ¥500, securities company H’s order takes precedence, followed by securities
+company B and then securities company J, as a result of time priority.
+
+In this way, each offer and bid is prioritized and executed accordingly.
+
+
+
+
+                                               27
+          Orders before the determination of the opening price, etc. are handled
+Q15 as orders accepted at the same time (i.e., simultaneous orders). How
+          is order priority determined and how are such orders executed?
+As explained in Q14, orders are normally executed based on price and time priority.
+However, in the following circumstances orders are treated as simultaneous orders and
+time priority is ignored:
+
+  a. All orders placed before the opening price is determined during the morning and
+      afternoon trading sessions (Note)
+  b. All orders placed before the initial price is determined when trading resumes after a
+      trading halt
+  c. All orders at the daily limit price, which will be executed with market orders at the
+      closing price of the afternoon session
+  d. On-close orders and funari orders registered in the order book at the start of the pre-
+      closing session and orders accepted during the pre-closing session
+
+  Note: Regardless of whether trading occurred during the opening auction of morning
+         trading session, all remaining orders from the opening auction of the morning
+         trading session will be included in the opening auction of the afternoon session
+         and treated as simultaneous orders.
+
+Since time priority does not apply for simultaneous orders, there is a problem of order
+priority for orders at the same price. How then is order priority determined?
+
+While orders are executed by order unit during continuous auction, simultaneous orders
+are allocated and executed by securities companies. In other words, the TSE totals up the
+quantity of orders from each securities company and arranges them in descending order
+of aggregated quantity of orders. One trading unit is then allocated to each securities
+company in turn.
+
+If there are multiple securities companies with the same number of orders, trading units
+will be allocated based on time priority of the first order placed by the securities company.
+
+
+
+This allocation method is also used for allocation at the daily price limit during the end of
+the afternoon trading session (Please see Q25 for details on “allocation at the daily price
+limit”).
+
+Since simultaneous orders are executed by securities companies, after execution, a
+securities company will then allocate the number of shares among their customers
+according to their internal rules based on the execution results.
+
+
+
+
+                                           28
+          How are simultaneous orders allocated? (Part 1)
+Q16 (Method to determine quantity allocated to each securities
+          company)
+As explained in Q15 above, simultaneous orders are allocated not on an order basis, but
+on a securities company basis. A concrete example of how the quantity allocated is
+determined is shown below.
+
+1. Let’s assume that securities companies A, B, C, and D have placed a number of buy
+orders at ¥500 before the opening price is determined in the morning trading session. The
+total volume of these orders is 2,900 shares.
+
+
+
+
+2. Since these are simultaneous orders, the TSE totals the number of orders for each
+securities company and ranks them in descending order of quantity.
+
+
+
+
+3. As explained in Q15, one trading unit is allocated in turn to each securities company in
+descending order of number of orders placed. The number of shares allocated to each
+securities company is determined as follows:
+
+
+
+
+Simultaneous orders are allocated in this way to each securities company. With each
+execution, simultaneous orders will be allocated accordingly until all orders are allocated.
+
+
+
+
+                                              29
+          How are simultaneous orders allocated? (Part 2)
+Q17 (Allocation of orders according to priority with each
+          execution)
+Simultaneous orders are allocated to each securities company according to the rules
+outlined in Q16.
+1. When 300 shares are executed at ¥500, TSE allocates 100 shares to securities
+  companies A, B, and C in order of descending order of order quantity as illustrated
+  below.
+
+
+
+
+2. When the next batch of 800 shares is executed, 100 shares are allocated to each
+  securities company from securities company D, which was not given any the previous
+  time. As such, the 200 shares of securities company D and the 300 shares of securities
+  company C will all be executed.
+
+
+
+
+Even if buy orders (bids) are accepted at ¥500 after the opening price is determined,
+execution of simultaneous orders will take precedence over such orders, because time
+priority applies to such orders. It follows that orders accepted after the opening price is
+determined will only be executed during the continuous trading session after all remaining
+simultaneous orders (1,800 shares) of securities companies A and B are allocated.
+
+
+
+
+                                          30
+Q18 Is it possible for stock prices to jump suddenly, for example
+    from ¥1,000 to ¥1,100?
+Stock prices are constantly fluctuating. However, if prices make sudden leaps, such as
+from ¥1,000 to ¥1,100, and then immediately fall back down to ¥950, investors placing
+market orders can find their orders being executed at unexpected and unfavorable prices,
+leading to heavy losses. All this makes it extremely difficult for both securities companies
+and investors to judge the timing for placing orders.
+
+On the TSE market, an immediate execution only takes place if the next execution price is
+within certain parameters based on the previous execution price. These special quote
+renewal price intervals are outlined in the chart on the next page.
+
+For example, if the most recently executed price was ¥500, the next execution price must
+be within the range ¥490~510. In other words, it may only fluctuate up to ¥10 in either
+direction.
+
+So what happens when the next execution looks likely to take place at a price beyond
+these quote parameters, for example at ¥550 when the preceding price was ¥500? In
+such instances execution does not take place. Instead, TSE indicates a special quote,
+which helps to make a smooth transition between such widely divergent prices. (For more
+details about special quotes, please see Q19.)
+
+Due to higher demand for execution at closing auctions, to facilitate the formation of closing
+prices, for the closing auction of the afternoon session, TSE broadens the executable price
+range to twice the renewable price interval from the last price, as shown in the table on the
+next page.
+
+When a stock price is ¥500 immediately before the closing auction of the afternoon
+session, the closing auction will be conducted with the price range from ¥480 to ¥520,
+because the renewal price interval for the closing auction of the afternoon session is ±
+¥20; however, if orders cannot be executed within the executable price range the afternoon
+session ends without any executions at the afternoon closing auction.
+
+
+
+
+                                               31
+                                                                        Renewal price
+                                                       Renewal price    interval for the
+    Last stock price or special quote price
+                                                        interval (±)    afternoon closing
+                                                                        auction(±)
+                          Less than           ¥ 200               ¥5                  ¥ 10
+      ¥ 200 or more   ～     〃                 ¥ 500               ¥8                  ¥ 16
+      ¥ 500    〃      ～     〃                 ¥ 700             ¥ 10                  ¥ 20
+      ¥ 700    〃      ～     〃                ¥ 1,000            ¥ 15                  ¥ 30
+     ¥ 1,000   〃      ～     〃                ¥ 1,500            ¥ 30                  ¥ 60
+     ¥ 1,500   〃      ～     〃                ¥ 2,000            ¥ 40                  ¥ 80
+     ¥ 2,000   〃      ～     〃                ¥ 3,000            ¥ 50                 ¥ 100
+     ¥ 3,000   〃      ～     〃                ¥ 5,000            ¥ 70                 ¥ 140
+     ¥ 5,000   〃      ～     〃                ¥ 7,000           ¥ 100                 ¥ 200
+     ¥ 7,000   〃      ～     〃               ¥ 10,000           ¥ 150                 ¥ 300
+   ¥ 10,000    〃      ～     〃               ¥ 15,000           ¥ 300                 ¥ 600
+   ¥ 15,000    〃      ～     〃               ¥ 20,000           ¥ 400                 ¥ 800
+   ¥ 20,000    〃      ～     〃               ¥ 30,000           ¥ 500                ¥ 1,000
+   ¥ 30,000    〃      ～     〃               ¥ 50,000           ¥ 700                ¥ 1,400
+   ¥ 50,000    〃      ～     〃               ¥ 70,000          ¥ 1,000               ¥ 2,000
+   ¥ 70,000    〃      ～     〃           ¥ 100,000             ¥ 1,500               ¥ 3,000
+   ¥100,000    〃      ～     〃           ¥ 150,000             ¥ 3,000               ¥ 6,000
+  ¥ 150,000    〃      ～     〃           ¥ 200,000             ¥ 4,000               ¥ 8,000
+  ¥ 200,000    〃      ～     〃           ¥ 300,000             ¥ 5,000             ¥ 10,000
+  ¥ 300,000    〃      ～     〃           ¥ 500,000             ¥ 7,000             ¥ 14,000
+  ¥ 500,000    〃      ～     〃           ¥ 700,000           ¥ 10,000              ¥ 20,000
+  ¥ 700,000    〃      ～     〃          ¥ 1,000,000          ¥ 15,000              ¥ 30,000
+ ¥ 1,000,000   〃      ～     〃          ¥ 1,500,000          ¥ 30,000              ¥ 60,000
+ ¥ 1,500,000   〃      ～     〃          ¥ 2,000,000          ¥ 40,000              ¥ 80,000
+ ¥ 2,000,000   〃      ～     〃          ¥ 3,000,000          ¥ 50,000             ¥ 100,000
+ ¥ 3,000,000   〃      ～     〃          ¥ 5,000,000          ¥ 70,000             ¥ 140,000
+ ¥ 5,000,000   〃      ～     〃          ¥ 7,000,000         ¥ 100,000             ¥ 200,000
+ ¥ 7,000,000   〃      ～     〃         ¥ 10,000,000         ¥ 150,000             ¥ 300,000
+¥ 10,000,000   〃      ～     〃         ¥ 15,000,000         ¥ 300,000             ¥ 600,000
+¥ 15,000,000   〃      ～     〃         ¥ 20,000,000         ¥ 400,000             ¥ 800,000
+¥ 20,000,000   〃      ～     〃         ¥ 30,000,000         ¥ 500,000            ¥ 1,000,000
+¥ 30,000,000   〃      ～     〃         ¥ 50,000,000         ¥ 700,000            ¥ 1,400,000
+¥ 50,000,000   〃                                          ¥ 1,000,000           ¥ 2,000,000
+
+
+
+
+                                       32
+Q19 What is a “special quote”?
+A special quote is indicated whenever prices look likely to jump beyond a certain price
+range (special quote renewal price interval) from the last execution price (e.g. the last
+execution price is ¥500, but the next execution price is likely to be less than ¥490 or more
+than ¥510). In this way, special quotes are mechanisms to prevent short-term wild price
+fluctuations.
+
+Special quotes can be indicated at any time during the trading session, whether it is before
+the opening price has been set or during Zaraba trading. They are indicated if there is any
+likelihood of inappropriate price fluctuations, for example, as a result of a major order
+imbalance between bids and offers. Special offer quotes are indicated when the next
+price is anticipated to be at a price lower than the given renewal price interval, and special
+bid quotes are indicated when the next price is anticipated to be at a price higher than the
+given renewal price interval. (For details on special quote renewal price intervals, please
+see Q18.)
+
+Special quote information is publicly disseminated through the TSE market information
+system, thus notifying market participants of the order imbalance as soon as possible. A
+special quote displayed in the sell side of the order book is a special offer quote; one on
+the buy side is a special bid quote. (Please see Q35.)
+
+A special quote indicates to investors that there are orders beyond that price, and
+encourages them to place balancing orders on the other side of the order book. If such
+orders are placed, matched, and executed, market equilibrium will have been achieved
+and the special quote will be removed. If on the other hand, no orders are received the
+special quote will be renewed at three minute intervals until equilibrium is achieved.
+
+For example, if a buy order is placed at ¥550 immediately after an execution price of ¥500
+and there is no sell order below ¥550, a special bid quote of ¥510 (±¥10 as shown in the
+table in Q18) will be indicated. If no offers are received at this price, the special bid quote
+will be raised to ¥520 after three minutes, and so on until equilibrium is achieved.
+
+Through the use of a special quote, there will be no sudden fluctuation in prices and
+investors can pick a time to place an order. In addition, when a special bid quote is
+displayed and a counter-offer comes in, the investor who placed the bid will be able to get
+a price nearer to the previous execution price. In other words, execution would take place
+at a much lower price than the original bid.
+
+
+
+
+                                                33
+Q20 How  are prices determined when a special quote is indicated? (Part 1)
+    (E.g.1: Trading is executed at a price widely divergent from the last price)
+The renewal of special quotes (SQ) is a gradual process so as to minimize price volatility
+when the next execution price looks likely to be beyond the special quote renewal price
+interval. This process is explained below.
+
+Let’s assume that a market sell order of 200 shares is placed when the last price is ¥530.
+At that point the order book is as follows: a sell order of 100 at a limit price of ¥531, a buy
+order of 100 shares at a limit price of ¥510, and a buy order of 300 shares at a limit price
+of ¥500.
+
+
+
+
+Now that the Itayose method is being used, the anticipated next price becomes ¥500 and
+all market orders must be executed. Thus, the market sell order of 200 shares will be
+matched at ¥500 with the 100 shares of the buy order at ¥510, and 100 of the 300 shares
+of the buy order at ¥500.
+
+
+
+
+                                           34
+In this way, when an SQ is indicated, investors placing market orders benefit from the best
+price available and are able to obtain a price nearer the last execution price.
+
+
+
+
+                                              35
+         How are prices determined when a special quote is
+Q21 indicated? (Part 2)
+         (E.g. 2: No execution due to order imbalance)
+As explained in Q20, SQs are used when there is a large price discrepancy, but as you
+will see, SQs are also used to alleviate major imbalances in the order book, for example
+many more buy orders than sell orders. The use of SQs notifies investors of the situation
+and encourages opposing orders into the order book to regain equilibrium. Imbalance is
+not dependent on the number of shares; an SQ will be shown if there is a market order of
+100 shares and no opposing orders.
+
+Let’s suppose that a large number of bids (buy orders) have been received prior to the
+setting of the opening price, and that the base price is ¥1,200.
+
+
+
+
+                                         36
+          Why are special quotes sometimes not renewed to their daily
+Q22 limit prices?
+          (Why are there cases where an SQ is not renewed?)
+Special quotes cannot be renewed beyond the price of the order that originally prompted
+the SQ.
+
+
+
+
+In this case, the bid SQ was displayed to indicate an interest to buy at prices up to ¥995.
+In other words, it indicates a situation where bids at ¥995 have the highest priority over all
+bids at other prices. It follows that the bid SQ cannot be renewed above the original bid
+such as ¥1,010.
+
+
+
+
+                                               37
+Q23 What is a “sequential trade quote”?
+In high-speed order matching and execution, sequential buying-up or selling-down within
+the special quote renewal price interval may result in instantaneous and sharp price
+fluctuations without a special quote being displayed at all. The sequential trade quote
+(STQ) was a new rule that was introduced to inform investors of such instantaneous price
+movement.
+
+If there is sequential execution that is likely to move beyond twice the special quote
+renewal price interval from the reference execution price, after execution up to the
+“reference price + (renewal price interval x 2)” (or in the case of offers, down to the
+“reference price - (renewal price interval x 2)”), a sequential trade quote will be displayed
+at this price for one minute. This quote informs investors of an instantaneous and sudden
+change in price and attracts opposing orders to counter this price movement. An
+explanation of the sequential trade quote mechanism follows.
+
+[STQ Display Condition]
+(1) A single order is likely to trigger a series of executions that will move the price beyond
+twice the special quote renewal price interval from the reference execution price. (The
+reference execution price is the
+last execution price.)
+(2) Regardless of whether it is a
+single order, there is likely to be
+a series of executions that will
+move the price beyond twice the
+special quote renewal price
+interval within one minute from
+the reference execution. (The
+reference execution is set as the
+f i r s t exe c u t i o n d u r i n g t h e
+continuous trading session, and
+it is reset to the first execution
+after each time interval elapses.)
+
+During the one-minute period when the sequential trade quote is shown, the Itayose
+method is used. After this period, if there is an opposing order at a price within the special
+quote renewal price interval from the sequential trade quote, the order will be executed
+immediately. If this opposing order is at a price beyond the special quote renewal price
+interval from the sequential trade quote, the sequential trade quote will not be renewed,
+instead a new special quote will be shown at the price which is the “sequential trade quote
+± special quote renewal price interval.”
+
+
+
+
+                                           38
+Even if one minute has not passed since an STQ was indicated, orders can be executed
+immediately if the sell order volume matches the buy order volume or the balance of
+the sell order volume and the buy order volume reverses; and the STQ will be removed.
+However, even in the case, the reference execution price will not be renewed until one
+minute has passed.
+
+As such, until one minute has passed since the reference execution price was set, even
+though orders are executed immediately by the Itayose method, the price will not move
+beyond the range of "reference price ± (renewal price interval x 2)".
+
+
+
+
+                                           39
+Q24 How  are prices determined when a sequential trade quote is
+    indicated?
+Sequential buying-up or selling-down within the special quote renewal price interval may
+result in instantaneous and sharp price fluctuations without a special quote being
+displayed at all. In such cases, a sequential trade quote is shown to inform investors of an
+instantaneous and sudden change in price and attract opposing orders to counter this
+price movement.
+
+First of all, sequential execution by a single order is shown as follows:
+Let’s suppose that there is a market buy order for 1,000 shares when the last price in
+Zaraba trading is ¥100.
+
+
+
+
+                                          40
+In Itayose trading, all market orders and bids and offers at prices better than the contract
+price must be executed. So in this case, we can expect execution at ¥111.
+
+In actual operations, the whole process from 1,000 market buy orders coming into the
+order book up to the display of the buy sequential trade quote at ¥110 is handled at
+extremely high speed, and may not be visible to the naked eye.
+
+
+
+
+In this way, a sequential trade quote can suppress instantaneous and sudden price
+movement caused by executions of a single order.
+
+
+
+
+                                              41
+Next, sequential execution by multiple orders within one minute is shown as follows:
+Let’s suppose that there is execution at ¥100 in Zaraba after the first transaction at 9:00,
+and multiple orders are placed below.
+
+
+
+
+In this way, if there is sequential execution due to orders placed by different investors in a
+short time, a sequential trade quote is indicated.
+The reference execution is set as the first execution during the continuous trading session
+and is reset to the first execution after each time interval elapses.
+A sequential trade quote will be displayed even when the series of executions is not in a
+single direction (for example, ¥100-> ¥96-> ¥97-> ¥93->…).
+
+
+
+                                           42
+Q25 What is a “closing auction at the limit price”?
+As explained in Q7, all stocks have fixed ranges within which their prices can fluctuate
+during a day. Occasionally, the price of a stock may rise or fall to their upper or lower
+daily limit price as a result of strong positive or negative public sentiment. Due to investor
+decisions to “buy at any price” or “sell at any price”, there may be cases of a large number
+of market orders which cause a major order imbalance.
+
+Normally, Itayose is used during the closing auction to determine the closing price. It
+follows that all market orders and bids and offers at better prices must be executed.
+However, if there is a large volume of orders on either side of the order book, this
+condition cannot be fulfilled, there will be no order matching or execution, and the closing
+price cannot be set.
+
+In order to match and execute orders at the daily limit price, instead of the normal Itayose
+method, TSE uses a special mechanism with relaxed conditions for closing auctions at the
+limit price to determine the closing price of the afternoon session.
+
+
+       [Requirements of Closing Auction at the Limit Price]
+       1. All market orders are treated as limit orders at the daily limit price.
+
+       2. In the case of a closing auction at the upper daily limit price, if there is a
+            sell order of at least one trading unit, the allocation by the “closing
+           auction at the limit price” will take place. (In the case of the closing
+           auction at the lower limit price, there must be a buy order of at least one
+           trading unit at the lower daily limit price.)
+       * The “closing auction at the limit price” will take place if one unit is
+          allocated to any securities company. As a result, some securities
+          companies may not receive any units.
+
+
+These requirements only apply “when there is order matching and execution at the daily
+limit price at the afternoon closing auction, and also orders cannot be executed under
+normal Itayose requirements”.
+
+In other words, these requirements do not apply to the closing auction of the morning
+trading session, execution at the daily limit prices during continuous auction trading, or
+execution at the daily limit prices at the afternoon closing auction if normal Itayose
+requirements can be met.
+
+
+
+
+                                                43
+Q26 How are closing auctions at the limit price processed?
+During closing auctions at the limit price, shares are executed as follows:
+
+1. The table below is a summary of the situation at the afternoon closing auction. The
+    current price, a bid SQ, is ¥500. Execution cannot take place because there are
+    insufficient sell orders (400 shares) to fulfil the conditions of matching all the market
+    buy orders (1,100 shares).
+
+
+
+
+2. TSE initiates a closing auction at the limit price. This means that all market orders are
+    treated as limit orders at the limit price. This gives us bids for a total of 1,500 shares at
+    ¥500.
+
+
+
+
+The requirements for the closing auction at the limit price are fulfilled as long as buy
+orders of one trading unit at the limit price of ¥500 is allocated to any one securities
+company, orders are matched and the closing price is set.
+
+In a closing auction at the limit price, all orders at the daily limit price are treated as
+simultaneous orders, and time priority does not apply. (For details on the allocaton of
+simultaneous orders, please see Q15.)
+
+Since all market orders and orders at the daily limit price are treated as orders at the same
+price with no time priority, in other words there is no clear order priority. Orders are
+allocated one trading unit each in turn to securities companies in descending order of
+total number of shares placed per securities company.
+
+In this case, the sell orders of 400 shares will be allocated in descending order of total
+number of shares placed. This means that one trading unit will be allocated to each of the
+securities companies A, D, C, and B in that order.
+
+
+
+                                            44
+Q27 What is a “closing auction session”?
+A. TSE has introduced a closing auction session for trading at the close of the afternoon
+    session to improve the transparency of closing price formation. Specifically, after a
+    5-minute order acceptance time (pre-closing session) from the close of Zaraba trading
+    (at 15:25), an Itayose is conducted at 15:30.
+
+Let’s look at the closing auction session process below.
+
+                        15:25                                                               15:30
+
+
+  Zaraba         Closing of Zaraba          Order acceptance time            Closing of session (Itayose)
+                  (Last price JPY100)            (Pre Closing)            (Executable price range : JPY 90 ～ 110)
+
+            ・Itayose will not be        ・Order book information will be        ・Itayose will be conducted
+             conducted at the close      disseminated                           after the order acceptance
+             of Zaraba.                 ・Able to place new orders and           time.
+            ・Processing of “on close”    modify/cancel existing orders
+             orders
+
+
+First, orders that have not been executed by the close of Zaraba trading are automatically
+registered on the pre-closing session. At the start of the pre-closing session (15:25), on-
+close orders and funari orders (limit orders that become market orders at the closing
+auction session if not already executed) will be registered in the order book.
+
+During the pre-closing session, only orders are accepted, and no trades are executed.
+New orders and modifications/cancellations of existing orders can be placed, but execution
+conditions cannot be modified. Similar to before trading begins, order book information will
+be distributed. (Please see Q36 for more details.)
+
+The pre-closing session then ends at the close of the afternoon session (15:30), and an
+Itayose is conducted. The priority of orders at the same price is as follows. (Please refer to
+Q15 for the handling of simultaneous orders.)
+(i) Orders accepted before the opening price for the afternoon session has been
+determined (treated as simultaneous orders)
+(ii) Orders accepted during Zaraba after the opening price for the afternoon session has
+been determined (the principle of time priority will be applied).
+(iii) On-close orders and funari orders registered in the order book at the start of the
+pre-closing session and orders accepted during the pre-closing session (treated as
+simultaneous orders, as distinguished from (i) above).
+
+The executable price range for the close of the afternoon session is twice the renewal
+price interval from the last price (the final price in Zaraba trading). Therefore, the closing
+price in the above example would be determined between JPY 90 and JPY 110.
+
+
+
+
+                                                   45
+Q28 How  are orders executed in the closing auction session
+    (Itayose at the close of the afternoon session)?
+A. Let's have a look at how trades are executed during the closing auction session (Itayose
+    at the close of the afternoon session), using the following example.
+
+This is before an Itayose at the close of the afternoon session (all orders received by the
+time the opening price is determined have been executed). In this situation, as a result of
+Itayose trading at the close of the afternoon session, 1,000 shares will be executed at JPY
+500, which means, 1,000 of 1,500 shares of buy orders will be executed.
+
+  Offer          Price         Bid
+                 M.O.
+   1,000          500          1,500
+
+Breakdown of bids
+   orders placed in the afternoon Zaraba     200(A)、300(C)、100(A, On close)、400(B)
+  orders placed in the pre-closing session   200(B)、300(C)
+
+
+According to the priority of orders indicated in Q27, of orders during Zaraba in the
+afternoon session, all of the 900 shares without execution conditions (200 shares from
+securities company A, 400 shares from securities company B, and 300 shares from
+securities company C) will be executed. The on-close order of 100 shares placed by
+securities company A during Zaraba, combined with the orders of 500 shares during
+the pre-closing session (200 shares from securities company B and 300 shares from
+securities company C) will be treated as simultaneous orders.
+
+In the case of simultaneous orders, the orders are totaled for each securities company
+(100 shares from securities company A, 200 shares from securities company B, and
+300 shares from securities company C), and the remaining 100 shares are allocated to
+securities company C from the securities company with the largest order volume to the
+one with the smallest order volume.
+
+
+
+To increase opportunities for closing price formation, even if trades are not executed
+through a normal Itayose or a closing auction at the limit price, TSE allows trades to
+be executed under the following conditions during Itayose at the close of the afternoon
+session. This is called a “special execution".
+
+
+
+
+                                             46
+          [Requirements of Special Execution]
+          If the cumulative total volume of buy orders* and the cumulative total
+          volume of sell orders are at least 1 unit each at the upper (or lower) limit of
+          the renewal price interval at the close of the afternoon session, trades will
+          be executed at the upper (or lower) limit of the renewal price interval at the
+          close of the afternoon session.
+          * Total volume of orders at the upper (or lower) limit of the renewal price
+           interval and the price that takes precedence over said upper (or lower)
+           limit at the close of the afternoon session.
+
+
+For example, in the case shown below (assuming the last price in Zaraba is JPY 500), not
+all market buy orders will be executed, and therefore, no trade will be executed by normal
+Itayose method. However, looking at the order status at JPY 520, which is the upper limit
+of the renewal price interval at the close of the afternoon session, the cumulative total
+of buy orders is 900 shares and the cumulative total of sell orders is 300 shares, so the
+conditions for a special execution are met and 300 shares will be executed at JPY 520.
+
+  Offer           Price             Bid
+  200             M.O.             (3)600
+  200              540
+                   530             (1)200
+  100              520             (2)100
+                   510
+                   500
+    *Numerals in brackets - time of acceptance
+
+
+The priority of orders in the special execution is determined based on the time at
+which orders were placed, regardless of prices or execution conditions. Therefore, of a
+cumulative total of 900 share of buy orders, 200 shares of buy orders at JPY 530 and 100
+shares of buy orders at JPY 520 will be executed.
+
+
+
+
+                                                  47
+Q29 Is there a special mechanism for trading newly-listed
+    stocks?
+Basically newly-listed stocks are traded in the same way as any other listed stocks. The
+Itayose method is used to determine the initial price (Note 1) and after that the Zaraba
+method is used.
+
+(Note 1: The first execution price after listing is known as the “initial price”.)
+
+
+However, there is one point in which the trading rules for newly listed stocks do differ from
+those of other listed stocks. This is that the daily price limit does not apply until an initial
+price has been determined. This rule only applies to “directly listed stock” or stocks that
+have never been listed or registered on any other market before. This is because they
+do not have a previous market price, and it is important for a reasonable market price to
+be determined as quickly and smoothly as possible. Daily price limits can only come into
+effect once an initial price has been determined. (Note 2)
+
+Also, after the initial price is determined, bids above the upper limit price and offers below
+the lower limit price will be replaced with orders at the limit prices, and bids below the
+lower limit price and offers above the upper limit price will become void.
+
+For example, let’s consider the case of a directly listed stock that has a public offering
+price of ¥700. If TSE applies the daily price limits, the stock will only be able to trade
+between ¥550 and ¥850 (the renewal price interval is ±¥150 for this base price).
+However, because the daily price limits are not applied until the initial price has been
+determined it is possible for an initial price of ¥1,000 to be achieved. Daily price limits are
+applied based on the initial price, so in this case the stock may trade at ¥700~¥1,300 after
+the initial transaction (the renewal price interval is ±¥300 for this base price). In the case
+of bids, those above ¥1,300 will be replaced with bids at ¥1,300, and those below ¥700
+will become void. In the case of offers, those below ¥700 will be replaced with offers at
+¥700, and those above ¥1,300 will become void.
+
+Flexibility is also shown with regard to the application of special quotes. Generally TSE
+allows special quotes to renew to a price which is 2.3 times the public offering price when
+the price goes up (depending on the circumstances, special quotes may be renewed at
+intervals of 5% of the public offering price, or at renewal price intervals), or 75% of the
+offering price when the price goes down (special quotes will be renewed at renewal price
+intervals).
+
+
+
+
+                                                     48
+As indicated above, these measures do not apply to stocks that transferred from other
+markets (including overseas markets) as reasonable market prices have already been
+established for them. Such stocks are treated in exactly the same way as other listed
+stocks even if the initial price on the TSE market has not been determined.
+
+(Note 2: Before the initial price is determined, orders can only be placed within a certain price range.
+Upper price limit: Public offering price* × 4
+Lower price limit: Public offering price* ÷ 4
+*: On or after the second day of listing, the final quote price)
+
+
+
+
+                                                        49
+Q30 What is a trading halt?
+A trading halt is used to confirm the truth and content of information before disclosure to
+the public when information considered likely to materially affect investment decisions
+becomes available.
+
+TSE temporarily halts trading in stocks of companies about which important information,
+such as a merger or capital increase, is officially disclosed and TSE deems it is necessary
+to disseminate it to the public. In such cases, trading resumes 15 minutes after an official
+announcement is made by those listed companies.
+
+TSE also halts trading in stocks of companies about which unclear but materially important
+information is broadcasted via information vendors or other news sources. In such cases,
+trading resumes 15 minutes after an official announcement on the details or truth of such
+information is disclosed.
+
+Placement, correction, and cancellation of orders may be made during a trading halt;
+however, each securities company has its own rules for treatment of orders when trading
+is halted, so investors should clarify how their orders will be treated during a trading halt.
+
+Trading resumes under the Itayose method. All orders placed before the initial price is
+determined after trading resumes are treated as simultaneous orders.
+
+Timeline of a Trading Halt
+
+
+
+
+                                           50
+51
+          What are a Security to Be Delisted, Security Under
+Q31 Supervision, Security on Special Alert, and Alert Regarding
+          Unclear Information, etc.?
+TSE designates listed stocks as a Security to Be Delisted or Security under Supervision in
+order to warn investors of the situation of certain stocks and to give them enough time to
+prepare for when TSE decides to delist such stocks. In the market data section of most
+Japanese newspapers, prices of stocks which have been so designated are printed in a
+section separate from sector classifications.
+
+Securities Under Supervision
+Listed stocks are designated as a Security Under Supervision (examination) or Security
+Under Supervision (confirmation) when they are likely to fall under any of TSE’s delisting
+criteria so that investors are properly warned and prepared.
+If a listed company is found to have made a false statement in documents such as the
+Securities Report and TSE deems that it is clearly difficult to maintain order in the market if
+the listed company is not delisted immediately, the stock will be designated as a Security
+Under Supervision (examination) during the period when TSE examines whether such
+listed company falls under the delisting criteria. During the period when TSE checks
+whether such listed company falls under specific delisting criteria such as number of
+shareholders, the stock will be designated as a Security Under Supervision (confirmation).
+Trading methods for stocks so designated are the same as those used in ordinary trading.
+If a decision is made to delist a stock, it will be designated as a Security to Be Delisted.
+
+Security to Be Delisted
+Listed stocks are designated as Securities to Be Delisted in order to warn investors and
+give them enough time to trade out of the stock after the listed stocks fall under the
+delisting criteria of TSE and TSE decides to delist them. In principle, TSE delists a stock
+after trading as Securities to Be Delisted for a certain period of time TSE decides. Trading
+methods for such stocks are, in principle, the same as those in ordinary trading; however,
+on the day after a stock is designated as a Security to Be Delisted, TSE may broaden its
+daily price limits. (Please see Q32 for more details.)
+
+
+
+
+                                           52
+Securities on Special Alert
+Sometimes a listed company is found to have made a false statement in documents such
+as the Securities Report or TSE deems that a listed company has violated the timely
+disclosure rules, and if TSE deems that it is necessary for such listed company to make
+improvements to aspects such as its internal control system, the stock of such company
+shall be designated as a Security on Alert.
+
+Alert Regarding Unclear Information, etc.
+TSE has a system for issuing alerts regarding information about securities or its issuers
+if it deems necessary to inform investors. In particular, TSE will issue an alert in such
+situations as: i) when unclear information that is deemed likely to have material impact
+on investment decisions becomes available in news reports, etc.; ii) when the issuer of
+a security will require some time to disclose information in an appropriate manner; or iii)
+when the information that can be immediately disclosed is limited.
+When an alert is issued, TSE informs investors of such alert by means including notices to
+securities companies and posts on the JPX website.
+If a stock, for which margin transactions can be made, becomes subject to the alert, TSE
+may publish outstanding margin transactions of said stock on a daily basis.
+
+
+
+
+                                              53
+Q32 When does TSE broaden the daily price limits?
+As explained in Q7, all listed stocks on the TSE market have daily price limits which limit
+price fluctuation in one day. Sometimes trading in a stock cannot be executed for several
+days due to these daily price limits even though investors place orders, targeting prices
+beyond the price limits due to positive or negative information about the stock. In such
+cases, TSE broadens the stock’s daily price limits in order to prompt smooth execution if
+certain conditions are met. Various conditions are considered before broadening a stock’s
+daily price limits.
+TSE disseminates information about an adjustment of daily price limits in advance via
+channels such as the JPX website.
+
+Abolition of Daily Price Limit
+Generally, a stock price will fall rapidly when a stock is designated as a Security to Be
+Delisted due to reasons such as bankruptcy and civil rehabilitation. However, depending
+on the current stock price, it sometimes takes several days after such designation for the
+stock to reach an equilibrium price because the daily price limits prevent the price from
+fluctuating excessively.
+In such cases, TSE monitors the situation of orders in the stock on the first trading day
+after such designation, and when TSE judges that the stock price will obviously drop, TSE
+will then abolish the daily price limits (i.e., broaden the lower price limit of the stock to ¥1)
+on the next trading day in order to prompt smooth execution.
+
+
+
+
+                                            54
+      SECTION 3
+— TSE market information services —
+
+
+
+
+                55
+Q33 What kind of market information is available to investors?
+Market information allows investors to assess the current market situation and judge
+whether stock prices are relatively high or low. This allows investors to make informed
+investment decisions.
+
+TSE provides the following kinds of market information: the price of every transaction, the
+opening/highest/lowest/closing prices for each stock, trading value and trading volume, as
+well as TOPIX (Tokyo Stock Price Index) information.
+
+While information on stock prices and trading volume is only generated after a transaction,
+the following information on the current situation in the order book is also available for
+each stock:
+
+Full order information
+TSE provides information on order quantity at the various prices for orders (including
+orders for execution at the closing auction) on a particular stock. Other information such as
+base prices and order book information are also available.
+Please note that information available to investors may vary depending on securities
+companies and content provided by information terminal services.
+(Please see Q34 for more details.)
+
+Ten best bid/offer quotes
+TSE provides information on order quantities at the best bid (offer) price, the second to
+tenth highest (lowest) prices, and the aggregated bid (offer) quantity of the eleventh
+highest (lowest) prices or lower (higher). (Please see Q34 for more details.)
+
+Special quote
+Special quotes are indicated when there is an order imbalance. TSE provides information
+on special quote prices and the aggregated offers and bids up to that price, the nine next
+best quotes on each side with the total number of shares at those prices, as well as
+market order quantity (only during Itayose). (Please see Q35 for more details.)
+
+
+
+
+                                               57
+Pre-opening quote
+Investors are obviously interested in the state of the order book before the opening
+auction takes place. So TSE provides a pre-opening quote, which indicates the price
+at which bids and offers will balance, the nine best bid and offer prices with the total
+number of shares at those prices, as well as market order quantity (TSE also provides this
+information during the pre-closing session). In other words, the pre-opening quote is an
+estimate of the opening price. This quote changes frequently up until the opening auction
+as more orders continue to reach the order book. (Please see Q36 for more details.)
+
+TSE provides this information to securities companies and information vendors. Individual
+private investors can access this information by contracting one of these companies.
+
+
+
+
+                                         58
+Q34 How are the ten best offer/bid quotes indicated?
+As mentioned in Q33, TSE provides details of the ten best bid and offer quotes during
+Zaraba trading, allowing investors to assess what orders are most appropriate.
+
+The table below shows that, looking at the ten best offer/bid quote information, an investor
+placing a market buy order of 1,000 shares can expect immediate execution at ¥501.
+Likewise, an investor placing a sell order for 1,000 shares at a limit price of ¥499 can
+expect execution of 600 shares at ¥500 and 400 shares at ¥499.
+
+
+
+
+                                              59
+Q35 How are special quotes indicated?
+As mentioned in Q33, TSE indicates the special quote and the aggregate shares on each
+side of the order book up to the special quote price, the nine next best buy and sell prices
+with their number of shares, as well as the market order quantity.
+
+The table below shows the order book with a special bid quote of ¥500. TSE calculates
+the aggregates of offers at prices lower than and equal to that price, and of bids at prices
+higher than or equal to that price. Information on bids for prices between ¥491 to ¥499
+and offers between ¥501 to ¥509, as well as market order quantity is displayed.
+
+
+
+
+* When a sequential trade quote is indicated, other than the symbol for the quote, the
+   information available will be the same as described above.
+
+
+
+
+                                          60
+Q36 How are pre-opening quotes indicated?
+As mentioned in Q33, investors are keenly interested in the state of the order book before
+the opening price is determined. TSE provides pre-opening quotes in the period prior to
+the opening auctions (from 08:00 for the morning session, and from 12:05 for the afternoon
+session). This quote is an estimate of the expected opening price, and only indicates
+a probability. It is the equilibrium price of current offers and bids. During this period,
+aggregated bids and offers, the best nine offers at prices higher than the quote price,
+the best nine bids at prices lower than the quote price, as well as market order quantity
+are also shown. TSE also provides this information during the pre-closing session.
+The following table illustrates the order book prior to the start of trading. As you can see,
+the aggregated bids and offers invert at ¥500 and ¥499 respectively. So TSE indicates an
+aggregated bid of 900 shares at ¥499 and an aggregated offer of 1,000 shares at ¥500.
+The quantities of limit sell orders between ¥501and ¥509, limit buy orders between ¥490
+and ¥498, as well as market orders will also be shown. This informs investors that the
+opening price is likely to be either ¥499 or ¥500.
+
+
+
+
+                                               61
+As mentioned in Q33, orders continue to be placed into the trading system right up until
+the opening auction, so the pre-opening price will change to reflect the balance of orders.
+Thus, a pre-opening quote indicated earlier could very well change after few moments. So
+placing a market sell order when the stock seemed likely to open slightly higher puts an
+investor at risk of execution at a lower price caused by subsequent changes in the order
+book.
+
+
+
+
+                                          62
+     SECTION 4
+— How trading works on ToSTNeT —
+
+
+
+
+               63
+Q37 What is “ToSTNeT”?
+ToSTNeT (Tokyo Stock Exchange Trading Network System) is TSE’s new trading system
+for “off-hour trading” and was launched in 1998 in order to respond to the diversified
+trading needs of investors.
+ToSTNeT has three sub-categories, ToSTNeT-1, ToSTNeT-2 and ToSTNeT-3, designed
+for different types of trading. ToSTNeT-1 provides two kinds of transactions, Single-Issue
+Transactions and Basket Transactions, which are mainly for institutional investors.
+ToSTNeT-2 provides Closing Price Transactions for individual investors. ToSTNeT-3
+provides Off-Auction Own Share Repurchase Transactions for listed companies.
+
+
+
+
+                                             65
+Q38 What are the trading rules and criteria for ToSTNeT?
+Trading rules and criteria for ToSTNeT vary by type of transaction as follows.
+
+
+
+
+            T+1～T+9
+            T+0 (Transaction between the same participant only)
+
+
+
+
+                                           66
+VWAP: Volume Weighted Average Price of an individual stock is calculated by dividing its trading value by its
+trading volume.
+(*1) VWAP guarantee transaction: A type of transaction that aims to guarantee VWAP-based executions. It is
+cross-matched with clients’ sell or buy orders at the pre-arranged VWAP net price (brokerage commissions
+included).
+(*2) VWAP target transaction: A type of transaction that aims for VWAP. Traders first execute a transaction for
+a number of shares that is pre-arranged with a client in an issue in the auction market. The VWAP target
+transaction is then cross-matched with clients’ sell or buy orders at the VWAP of the execution result.
+Transactions at the VWAP net price of clients’ execution results (brokerage commissions included) are also
+available.
+(*3) In case the amount obtained by multiplying the last price in the auction market by 7% is below JPY5, the
+range will be JPY5 above or below the last price in the auction market.
+
+
+
+
+                                                        67
+Q39 What is Share Buyback (or Repurchase) via ToSTNeT?
+A listed company conducts a share buyback with prior announcement to repurchase
+stocks in the auction market, through ToSTNeT-2 or ToSTNeT-3 in cases where
+shareholders are scheduled to sell their shares due to their actions such as unwinding
+cross-shareholdings. In the event of such a buyback, an announcement containing details
+of the buyback or repurchase program is made one day in advance of the actual buyback.
+
+In general, the merits of a share buyback with prior announcement are:
+1. Flexibility and low cost: Able to buy flexibly at prices while monitoring daily stock prices.
+    It also does not require statutory declaration unlike takeover bids (TOB) and such other
+    corporate actions.
+2. Able to buy a specified number of shares all at once from shareholders.
+3. Disclosure dispels concerns over infringing insider trading and market manipulation
+    rules.
+4. Secure trading opportunities for other shareholders, as well as ensure fairness and
+    transparency of transactions by adopting TSE trading rules for the buyback.
+
+In addition, transactions through ToSTNeT-2 also provide the following merits:
+1. Predetermined repurchase* value due to transaction at a predetermined price.
+   * Depending on the shareholder, it may be a sale.
+2. Secure trading opportunities for other shareholders by adopting time priority.
+3. Avoid direct impact on the market through fixed price transactions performed outside
+    auction trading hours.
+
+TSE started ToSTNeT-3 on January 15, 2008. While ToSTNeT-3 is similar to ToSTNeT-2
+in terms of fixed price transactions, it differs from ToSTNeT-2 on the following points.
+1. Since buy orders are limited to bids by listed companies which intend to buy, execution
+    of bids is guaranteed.
+2. Securities companies who place such bids on behalf of listed companies are required to
+    notify the TSE one business day before the intended bid.
+3. Where the number of offers exceeds the number of bids, trading opportunities for other
+    shareholders are secured through matching by the pro rata ratio method.
+4. Margin trading is not allowed.
+
+
+
+
+                                            68
+                               NOTICE
+The contents of this guidebook are copyrighted. This guidebook，whether in
+part or in its entirely，may not be diverted，reproduced，quoted，altered，or
+sold without prior permission.
+
+The sole purpose of this guidebook is to explain TSE' s trading
+methodology，and is not meant in anyway as investment advice. AII
+comments and calculations are given as examples only.
+
+The contents of this guidebook may be altered or deleted by TSE at any
+time without prior notice.
+
+Please access our website for further information.
+
+https://www.jpx.co.jp/english/
+Copyright (c) 2024 Tokyo Stock Exchange，Inc. AII rights reserved
+                                                                   (2024.9)
+
