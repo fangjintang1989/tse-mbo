@@ -80,16 +80,49 @@ The remaining **272 rows have a valid IAP with `iav > 0`.**
 
 ```text
 src/
-  cli/        executable entry point
-  app/        CLI argument parsing, venue JSON loader, CSV output
-  replay/     PCAP loading, timestamp-merged replay across files
-  ingest/     gzipped PCAP reader + Ethernet/IPv4/UDP decoding
-  flex/       FLEX packet/tag parsing, message normalisation
-  tse/        Tse engine facade
-  book/       order book replay, IAP/IAV calculation (Itayose)
-tests/        unit tests + real-capture fixture regression
-docs/         FLEX protocol spec, JPX 2024 PDF, Itayose algorithm reference
-output/       assignment deliverable CSV + its README
+  cli/
+    main.cpp                     executable entry point; parses argv and calls app::run
+  app/
+    app.{hpp,cpp}                CLI argument parsing, venue JSON loader, stock filter, CSV output
+  replay/
+    replay_runner.{hpp,cpp}      loads all PCAPs, timestamp-merges records across files,
+                                 dispatches to ReplayDataCallback
+  ingest/
+    pcap_reader.{hpp,cpp}        gzipped classic PCAP reader (little-endian, microsecond or nanosecond)
+    network_decoder.{hpp,cpp}    Ethernet + IPv4 + UDP frame decoder; produces UdpDatagramView
+  flex/
+    flex_parser.{hpp,cpp}        FLEX packet header + variable-length tag splitter
+    flex_message.{hpp,cpp}       typed A/D/E/C/R decoder; price sentinel and market-order handling
+  tse/
+    tse.{hpp,cpp}                thin facade over OrderBookReplayer; implements ReplayDataCallback
+  book/
+    order_book.{hpp,cpp}         per-issue state, opening-eligible ladder, live_orders map,
+                                 A/D/E/C/R replay, base-price + reference-price bookkeeping
+    indicative.{hpp,cpp}         Itayose 5-condition rule (Cond 1 guard, band filter,
+                                 min-imbalance, side rule, reference tie-break)
+tests/
+  test_main.cpp                  unit tests: PCAP reader, UDP decoder, FLEX splitter,
+                                 order-book replay, every Itayose branch incl. no-result cases
+  fixture_capture_test.cpp       real-capture regression; asserts exact counts and writes
+                                 step1/step2/step3 audit CSVs to build/results/
+  audit/
+    iap_iav_audit.hpp            header-only audit-CSV writer reused by the fixture test
+    compare_step1_step2_order_book.py   cross-check: replay step1 rows independently in
+                                        Python, diff against step2 state
+    trace_symbol_order_book.py   per-symbol order-by-order trace verifier
+docs/
+  assignment-original.docx       original take-home assignment (as supplied)
+  protocol-original.{docx,pdf}   original FLEX Full MBO protocol specification
+  protocol-source.md             text extract of the protocol spec for in-repo search
+  jpx-trading-methodology-2024.pdf            JPX 2024 Guide to TSE Trading Methodology
+  jpx-trading-methodology-2024.extracted.txt  its text extract (used for the Q12 cross-check)
+  itayose-calculation.md         the IAP/IAV algorithm reference: 5-condition hierarchy,
+                                 JPX Q12 cross-check, edge cases, outstanding work
+output/
+  iap_iav_20241105.csv           assignment deliverable: symbol,iap,iav for 304 stocks
+  README.md                      deliverable description and row-count breakdown
+CMakeLists.txt                   build configuration; also wires the fixture test only when
+                                 the sample PCAPs and venue JSON are present next to the repo
 ```
 
 ## Tests
