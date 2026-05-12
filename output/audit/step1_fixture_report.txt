@@ -1,0 +1,445 @@
+# Step 1 Fixture Report
+
+inputs:
+- "data/20241105_051.test.pcap.gz"
+- "data/20241105_052.test.pcap.gz"
+
+summary:
+  capture_records=210990
+  udp_datagrams=210990
+  flex_packets=210990
+  tags_seen=430530
+  decoded_message_rows=430530
+  issues_tracked=344
+
+capture_time_ranges:
+  precision=nanoseconds
+  timezone_note=pcap timestamps are stored as epoch UTC; JST is UTC+09:00
+  20241105_051.test.pcap.gz:
+    first_epoch_nsec=1730758200.448099196
+    first_utc=2024-11-04T22:10:00.448099196Z
+    first_jst=2024-11-05T07:10:00.448099196+09:00
+    last_epoch_nsec=1730764799.999866426
+    last_utc=2024-11-04T23:59:59.999866426Z
+    last_jst=2024-11-05T08:59:59.999866426+09:00
+    min_epoch_nsec=1730758200.448099196
+    max_epoch_nsec=1730764799.999866426
+    elapsed=6599.551767230s
+  20241105_052.test.pcap.gz:
+    first_epoch_nsec=1730758200.448123490
+    first_utc=2024-11-04T22:10:00.448123490Z
+    first_jst=2024-11-05T07:10:00.448123490+09:00
+    last_epoch_nsec=1730764799.999985828
+    last_utc=2024-11-04T23:59:59.999985828Z
+    last_jst=2024-11-05T08:59:59.999985828+09:00
+    min_epoch_nsec=1730758200.448123490
+    max_epoch_nsec=1730764799.999985828
+    elapsed=6599.551862338s
+
+tag_counts:
+  A=188936
+  D=30261
+  L=222
+  O=343
+  T=210768
+
+replay_counts:
+  A=188936
+  D=30261
+  E=0
+  C=0
+  R=0
+
+indicative_rows:
+  rows=304
+  rows_with_result=272
+  rows_without_result=32
+
+endpoints:
+  10.17.13.58:51551 -> 224.0.220.51:51551 count=94901
+  10.17.13.68:51552 -> 224.0.220.52:51552 count=116089
+
+top_issues_by_packet_count:
+  1570 count=33268
+  6857 count=9153
+  3197 count=5947
+  6164 count=5174
+  4385 count=4763
+  4911 count=4664
+  7211 count=4314
+  6954 count=3466
+  1491 count=3421
+  4042 count=3082
+
+issue_names_by_capture:
+  20241105_051.test.pcap.gz:
+    1382 -> ホーブ packets=76
+    1433 -> <missing venue name> packets=262
+    1444 -> Ｇ－ニッソウ packets=51
+    1487 -> <missing venue name> packets=103
+    1490 -> 黹xータヘッジ packets=3
+    152A -> Ｐ－オプティ packets=1
+    1543 -> ャp艶M packets=370
+    154A -> Ｐ－ＧＡＩＡ packets=1
+    1555 -> 黷`梶[ト packets=169
+    1633 -> ＮＦ不ｮ産Ｔ１７ packets=1502
+    1680 -> 黷lＳコク packets=128
+    1690 -> ｴ福dＴＦ packets=67
+    1696 -> コー唐dＴＦ packets=186
+    1776 -> 三住ｹ路 packets=87
+    1815 -> 鉄ﾝ packets=136
+    182A -> ＭＸﾄﾂ２０ｴヘｳ packets=14
+    1879 -> <missing venue name> packets=122
+    1899 -> 沒c組 packets=180
+    1972 -> <missing venue name> packets=151
+    198A -> Ｇ－ポストプ宴C packets=237
+    2050 -> ニッチトップｬ型 packets=1644
+    205A -> Ｇ－鴻SスＨＤ packets=332
+    2094 -> ＲＥＩＴイ塔oース packets=370
+    2127 -> 坙{Ｍ浮` packets=2452
+    2148 -> ＩＴＭ packets=483
+    2164 -> Ｇ－地謳Vｷﾐ packets=215
+    2251 -> ＪＧＢダブ泣C塔o packets=49
+    2282 -> 凬n packets=1368
+    2373 -> ケア２１ packets=144
+    2379 -> ディップ packets=787
+    2397 -> ＤＮＡチップ､ packets=119
+    2437 -> シ純Cズ packets=416
+    2513 -> ＮＦ外買wッジｳ packets=118
+    2556 -> Ｏ・Ｊ梶[ト packets=632
+    2751 -> テ塔|スＨＤ packets=225
+    2763 -> エフティグ求[プ packets=210
+    2838 -> ＭＸﾄﾂ７－１０ヘｳ packets=20
+    2839 -> ＭＸﾄﾂ７－１０ヘ有 packets=21
+    2853 -> 奄r気Oﾂ買wジ packets=5
+    2883 -> <missing venue name> packets=326
+    2901 -> <missing venue name> packets=450
+    2922 -> <missing venue name> packets=244
+    2936 -> Ｇ－ベースフード packets=2377
+    2994 -> Ｐ－ア塔TーＨＤ packets=1
+    3034 -> クオー汲gＤ packets=385
+    3070 -> Ｇ－ジェ梶[ビー塔Y packets=1290
+    3156 -> 激Xター packets=151
+    3178 -> チニー packets=432
+    3197 -> ｷｩ｢轣[ｭＨＤ packets=5947
+    3328 -> ＢＥＥＮＯＳ packets=153
+    3416 -> Ｇ－ピクスタ packets=128
+    3437 -> ﾁ齠dﾉ packets=58
+    3445 -> ＲＳＴＥＣＨ packets=250
+    3455 -> Ｒ－ＨＣＭ packets=465
+    3459 -> Ｒ－サティ激W packets=359
+    3550 -> Ｇ－スタジオアタオ packets=305
+    3600 -> フジックス packets=35
+    3663 -> セ泣Vス packets=469
+    3667 -> <missing venue name> packets=993
+    3961 -> Ｇ－シ泣oーエッグ packets=90
+    3962 -> チェ塔WＨＤ packets=898
+    4055 -> Ｇ－ティア塔hエスＧ packets=156
+    4061 -> デ塔J packets=1135
+    4237 -> フジプ激A packets=213
+    4251 -> 恵和 packets=439
+    4258 -> Ｇ－ﾔｮ packets=111
+    4374 -> Ｇ－鴻{ペイ packets=88
+    4376 -> Ｇ－ｭﾓ､カ塔pニー packets=167
+    4390 -> <missing venue name> packets=108
+    4485 -> Ｇ－ＪＴＯＷＥＲ packets=175
+    4521 -> <missing venue name> packets=219
+    4596 -> Ｇ－窪田ｻgＤ packets=905
+    4627 -> ナトコ packets=68
+    4644 -> イマジニア packets=208
+    4666 -> パーク２４ packets=1284
+    4673 -> 闥nｿ packets=40
+    4735 -> 梵i packets=111
+    4762 -> ＸＮＥＴ packets=48
+    4839 -> ＷＯＷＯＷ packets=715
+    4891 -> Ｇ－ティス packets=480
+    4911 -> ｶｰ packets=4664
+    4960 -> ケミプｻｬ packets=131
+    4970 -> 圏mｬ packets=240
+    4977 -> <missing venue name> packets=384
+    5232 -> <missing venue name> packets=265
+    5247 -> Ｇ－ＢＴＭ packets=40
+    5288 -> アジアパイ汲gＤ packets=497
+    5471 -> ｯﾁ鋼 packets=1336
+    5482 -> ､知鋼 packets=159
+    5527 -> <missing venue name> packets=118
+    5532 -> Ｇ－潟A泣Qイト packets=109
+    5570 -> Ｇ－ジェノバ packets=105
+    5889 -> ＪＥＨ packets=506
+    5946 -> ｷ府ｻ packets=209
+    5974 -> 総H packets=152
+    6085 -> Ｇ－アーキテクツＳＪ packets=133
+    6095 -> ＜hピア packets=323
+    6113 -> アマダ packets=1679
+    6136 -> ＯＳＧ packets=659
+    6164 -> ｾ陽工機 packets=5174
+    6165 -> パ塔` packets=461
+    6180 -> Ｇ－ＧＭＯ＜fィア packets=46
+    6182 -> <missing venue name> packets=238
+    6194 -> アト宴G packets=324
+    6229 -> オーケーエ packets=109
+    6238 -> フー packets=294
+    6254 -> <missing venue name> packets=1774
+    6392 -> с}ダコーポ packets=34
+    6433 -> ヒーハイスト packets=193
+    6617 -> ｊx packets=182
+    6835 -> ア宴CドＨＤ packets=1144
+    6848 -> 气fィーケーケー packets=245
+    6857 -> アドバ塔eス packets=9153
+    6866 -> 咊u電 packets=110
+    6947 -> 図､ packets=161
+    6954 -> ファナック packets=3466
+    6966 -> 三艫nイテク packets=956
+    7041 -> Ｇ－ＣＲＧＨＤ packets=58
+    7043 -> Ｇ－ア求[ packets=29
+    7083 -> Ｇ－ＡＨＣグ求[プ packets=126
+    7110 -> Ｇ－ク宴Vコ packets=72
+    7120 -> ＳＨＩＮＫＯ packets=75
+    7132 -> <missing venue name> packets=1
+    7136 -> Ｐ－ウェ泣r唐f packets=1
+    7180 -> 繽BＦＧ packets=640
+    7186 -> コ塔R泣fィアＦＧ packets=1463
+    7211 -> 三菱ｩ packets=4314
+    7217 -> <missing venue name> packets=53
+    7256 -> ﾍｼ工 packets=470
+    7282 -> <missing venue name> packets=708
+    7309 -> シマノ packets=653
+    7373 -> Ｇ－アイドマＨＤ packets=238
+    7380 -> 十六ＦＧ packets=189
+    7446 -> 喧kｻ学 packets=23
+    7450 -> サ塔fー packets=121
+    7524 -> マ泣Vェ packets=168
+    7538 -> <missing venue name> packets=107
+    7550 -> ゼ塔V〟[ＨＤ packets=1115
+    7593 -> ＶＴＨＤ packets=1758
+    7601 -> <missing venue name> packets=323
+    7605 -> <missing venue name> packets=72
+    7640 -> <missing venue name> packets=346
+    7646 -> ＰＬＡＮＴ packets=188
+    7683 -> ダブ泣Gー packets=615
+    7741 -> ＨＯＹＡ packets=1015
+    7804 -> ビーア塔hピー packets=100
+    7990 -> グ香[ブ宴Cド packets=456
+    7995 -> バ泣Jー packets=262
+    8103 -> ｾ和産 packets=544
+    8151 -> 圏zテクニカ packets=204
+    8200 -> 塔Kーハット packets=947
+    8835 -> ｾｽ洋ｭ packets=228
+    8844 -> コスｃXイニシア packets=153
+    8954 -> Ｒ－オ潟bクスＦ packets=707
+    9216 -> ビーウィズ packets=694
+    9218 -> Ｇ－塔^泣w泣XＴ packets=112
+    9225 -> <missing venue name> packets=74
+    9257 -> Ｇ－ＹＣＰ packets=36
+    9268 -> オプティマス packets=892
+    9303 -> 住友倉 packets=349
+    9305 -> с}タネ packets=99
+    9310 -> ト塔Xシティ packets=138
+    9340 -> アソイ塔^ー packets=78
+    9343 -> Ｇ－アイビス packets=184
+    9367 -> 訣`運 packets=61
+    9474 -> <missing venue name> packets=663
+    9535 -> 広㏍Kス packets=346
+    9539 -> 棊t｢斯 packets=38
+    9726 -> ＫＮＴＣＴ packets=265
+    9889 -> ＪＢＣＣ　ＨＤ packets=215
+    9994 -> <missing venue name> packets=299
+  20241105_052.test.pcap.gz:
+    1349 -> <missing venue name> packets=35
+    1417 -> <missing venue name> packets=511
+    1452 -> Ｐ－｡浜宴Cト工ﾆ packets=1
+    145A -> Ｇ－エ泣Cズビー packets=116
+    1475 -> 奄rＴＯＰＩＸ packets=2129
+    1479 -> <missing venue name> packets=1
+    1491 -> 外鉱 packets=3421
+    1498 -> Ｏ・ＥＳＧ packets=2430
+    153A -> Ｇ－カウ潟X packets=261
+    1541 -> ャv艶M packets=1105
+    1570 -> ＮＦ卲o激o packets=33268
+    1572 -> <missing venue name> packets=210
+    158A -> <missing venue name> packets=1
+    1618 -> ＮＦエネｹＴ１７ packets=814
+    1631 -> ＮＦ竝sＴ１７ packets=942
+    1770 -> ｡田エ塔W packets=51
+    1795 -> <missing venue name> packets=44
+    1969 -> ｻ熱 packets=490
+    1973 -> ＮＥＳＩＣ packets=780
+    2011 -> <missing venue name> packets=89
+    2015 -> 奄eﾄﾂ７１０Ｈｳ packets=37
+    206A -> <missing venue name> packets=494
+    2179 -> ｬ学ﾐ packets=68
+    2193 -> ＣＯＯＫＰＡＤ packets=701
+    2211 -> 不ﾆ packets=2163
+    2226 -> ﾎ池ｮ packets=128
+    2300 -> ｫｭﾆ packets=176
+    233A -> 奄eイ塔hＮ５０ packets=269
+    2410 -> キ潟AＤＣ packets=196
+    2481 -> タウ塔jース packets=47
+    2531 -> gＬＤ packets=1114
+    262A -> イ塔^ー＜Xティック packets=858
+    2637 -> <missing venue name> packets=932
+    2642 -> <missing venue name> packets=1745
+    2673 -> <missing venue name> packets=628
+    2681 -> ゲオＨＤ packets=483
+    2708 -> 久｢ packets=84
+    2733 -> ｽ packets=128
+    2845 -> ナスダックヘッジ有 packets=94
+    2855 -> ＧＸグ鰍i梶[ト packets=461
+    2862 -> 黹t塔XﾂＨ有 packets=3
+    2874 -> コ激C packets=379
+    2884 -> シ堰EＦ・ＨＤ packets=372
+    2992 -> Ｐ－アーバ宴Cク packets=1
+    3042 -> <missing venue name> packets=475
+    3073 -> ＤＤグ求[プ packets=562
+    3104 -> 富士紡ＨＤ packets=104
+    3116 -> トタ紡織 packets=1485
+    3245 -> ディア・宴Cフ packets=838
+    3392 -> デ潟JフーズＨＤ packets=380
+    3434 -> <missing venue name> packets=228
+    3462 -> Ｒ－ＮＭＦ packets=817
+    3496 -> Ｇ－アズー packets=98
+    3542 -> Ｇ－ＶＥＧＡ packets=130
+    3551 -> ダイニック packets=155
+    3635 -> <missing venue name> packets=809
+    3726 -> フォーシーズＨＤ packets=172
+    3738 -> ティーガイア packets=832
+    3840 -> ＰＡＴＨ packets=507
+    3895 -> ハビックス packets=93
+    3901 -> マーク宴C塔Y packets=131
+    3907 -> Ｇ－シ潟R塔Xタジオ packets=63
+    3954 -> ＰＡＸＸＳ packets=41
+    4042 -> 激\ー packets=3082
+    4264 -> Ｇ－セキア packets=225
+    4275 -> カー潟bト packets=391
+    4323 -> 坙{システ技術 packets=84
+    4350 -> ＜fィシス packets=180
+    4361 -> ｻ packets=80
+    4378 -> Ｇ－ＣＩＮＣ packets=208
+    4385 -> <missing venue name> packets=4763
+    4391 -> Ｇ－鴻Wザード packets=46
+    4403 -> <missing venue name> packets=365
+    4406 -> 新坙{ｻ packets=360
+    4443 -> <missing venue name> packets=740
+    4488 -> <missing venue name> packets=120
+    4536 -> <missing venue name> packets=1834
+    4576 -> Ｇ－ＤＷＴＩ packets=861
+    4612 -> 凬yイ塔gＨＤ packets=1292
+    4674 -> ク激Xコ packets=127
+    4678 -> 秀英 packets=286
+    4792 -> <missing venue name> packets=124
+    4800 -> <missing venue name> packets=172
+    4809 -> パ宴J packets=151
+    4932 -> ア泣}ード packets=292
+    5031 -> Ｇ－ｃC packets=230
+    5076 -> イ塔t鴻jアＨＤ packets=1200
+    50765 -> イ塔t鴻jア－優 packets=21
+    5125 -> Ｇ－ファイ塔Y packets=80
+    5201 -> ＡＧＣ packets=2762
+    5246 -> Ｇ－ＥＬＥＭＥＮＴＳ packets=581
+    5268 -> <missing venue name> packets=56
+    5302 -> <missing venue name> packets=262
+    5333 -> 坙{ガイシ packets=1328
+    5391 -> <missing venue name> packets=138
+    5446 -> <missing venue name> packets=144
+    5574 -> Ｇ－ＡＢＥＪＡ packets=378
+    5721 -> エス・サイエ塔X packets=3055
+    5753 -> 﨎Lｺ packets=37
+    5757 -> ＣＫサ塔Gツ packets=78
+    5867 -> Ｇ－エスネット packets=42
+    5868 -> 鴻Rコ packets=65
+    5903 -> ＳＨＩＮＰＯ packets=94
+    5987 -> オーネックス packets=19
+    6034 -> Ｇ－ＭＲＴ packets=79
+    6040 -> Ｇ－坙{スキー packets=182
+    6070 -> キ潟A塔N packets=338
+    6074 -> ＪＳＳ packets=48
+    6089 -> ウィ泣O求[プ packets=352
+    6131 -> 浜芬Y packets=86
+    6143 -> ソディック packets=438
+    6186 -> <missing venue name> packets=183
+    6328 -> 荏ｴﾀﾆ packets=82
+    6484 -> ＫＶＫ packets=82
+    6486 -> イーグ牛H packets=281
+    6517 -> デー packets=77
+    6525 -> ＫＯＫＵＳＡＩ packets=2570
+    6532 -> ベイカ塔g packets=658
+    6546 -> フ泣eック packets=174
+    6547 -> グ梶[塔Y packets=215
+    6637 -> 闢d気 packets=69
+    6653 -> <missing venue name> packets=242
+    6772 -> コスｃX電 packets=39
+    6797 -> ｼﾃｮ電機工ﾆ packets=99
+    6898 -> トミタ電機 packets=72
+    6937 -> ﾃﾍ電池 packets=291
+    6973 -> ｦ栄産 packets=120
+    7030 -> スプ潟bクス packets=133
+    7073 -> Ｇ－ジェイック packets=56
+    7082 -> Ｇ－ジｃeィー packets=131
+    7115 -> ア泣tァパーチェス packets=93
+    7125 -> Ｐ－イ激X packets=1
+    7137 -> Ｐ－グ塔gマト packets=1
+    7212 -> エフテック packets=340
+    7231 -> トピー工 packets=368
+    7247 -> ミクニ packets=392
+    7419 -> ノジマ packets=421
+    7420 -> ｲｹ電機 packets=294
+    7467 -> ｴ電気ＨＤ packets=199
+    7494 -> コナカ packets=954
+    7595 -> ア泣Sグ宴t packets=120
+    7739 -> キсm涛d子 packets=285
+    7746 -> ｪ本ﾉ子 packets=477
+    7844 -> マーベ宴X packets=761
+    7887 -> 海プ宴Cウッド packets=23
+    7901 -> マツｃg packets=491
+    7927 -> トーｸ工 packets=231
+    8039 -> <missing venue name> packets=108
+    8085 -> ナ宴Tキ packets=32
+    8111 -> <missing venue name> packets=482
+    8209 -> フ塔h梶[ packets=49
+    8562 -> <missing venue name> packets=274
+    8595 -> ジャtコ　グ求[プ packets=584
+    8616 -> <missing venue name> packets=1654
+    8750 -> ｶｽＨＤ packets=2684
+    8886 -> ウッドフ塔X packets=32
+    8908 -> 凬Rネット packets=287
+    9142 -> ＪＲ繽B packets=1119
+    9409 -> テ激rｩ冾gＤ packets=259
+    9553 -> Ｇ－マイク鴻Aド packets=273
+    9556 -> Ｇ－ＩＮＴＬＯＯＰ packets=144
+    9619 -> イチネ唐gＤ packets=240
+    9629 -> ピーシーエー packets=127
+    9687 -> ＫＳＫ packets=58
+    9723 -> <missing venue name> packets=83
+    9735 -> セコ packets=832
+    9818 -> ﾛエナ packets=49
+    9837 -> 潟g packets=356
+    9878 -> セキド packets=84
+    9902 -> 咩` packets=184
+    9979 -> ｯ packets=778
+    9986 -> ､産ﾆ packets=125
+
+sample_decoded_datagrams:
+udp file=20241105_051.test.pcap.gz record=1 ts_sec=1730758200 ts_subsec=448099196 endpoint="10.17.13.58:51551 -> 224.0.220.51:51551" payload_bytes=30 flex_packets=1
+  flex index=1 seq=1 issue=<control> update=0 packet=0/0 utility=0 messages=1
+    tag index=1 type=L length=3 hex=4c 01 01
+udp file=20241105_052.test.pcap.gz record=1 ts_sec=1730758200 ts_subsec=448123490 endpoint="10.17.13.68:51552 -> 224.0.220.52:51552" payload_bytes=30 flex_packets=1
+  flex index=1 seq=1 issue=<control> update=0 packet=0/0 utility=0 messages=1
+    tag index=1 type=L length=3 hex=4c 01 01
+udp file=20241105_052.test.pcap.gz record=2 ts_sec=1730758202 ts_subsec=119245332 endpoint="10.17.13.68:51552 -> 224.0.220.52:51552" payload_bytes=30 flex_packets=1
+  flex index=1 seq=2 issue=<control> update=0 packet=0/0 utility=0 messages=1
+    tag index=1 type=L length=3 hex=4c 01 00
+udp file=20241105_051.test.pcap.gz record=2 ts_sec=1730758202 ts_subsec=121856452 endpoint="10.17.13.58:51551 -> 224.0.220.51:51551" payload_bytes=30 flex_packets=1
+  flex index=1 seq=2 issue=<control> update=0 packet=0/0 utility=0 messages=1
+    tag index=1 type=L length=3 hex=4c 01 00
+udp file=20241105_052.test.pcap.gz record=3 ts_sec=1730758260 ts_subsec=400350361 endpoint="10.17.13.68:51552 -> 224.0.220.52:51552" payload_bytes=30 flex_packets=1
+  flex index=1 seq=3 issue=<control> update=0 packet=0/0 utility=0 messages=1
+    tag index=1 type=L length=3 hex=4c 01 00
+udp file=20241105_051.test.pcap.gz record=3 ts_sec=1730758260 ts_subsec=400365286 endpoint="10.17.13.58:51551 -> 224.0.220.51:51551" payload_bytes=30 flex_packets=1
+  flex index=1 seq=3 issue=<control> update=0 packet=0/0 utility=0 messages=1
+    tag index=1 type=L length=3 hex=4c 01 00
+udp file=20241105_052.test.pcap.gz record=4 ts_sec=1730758320 ts_subsec=400363075 endpoint="10.17.13.68:51552 -> 224.0.220.52:51552" payload_bytes=30 flex_packets=1
+  flex index=1 seq=4 issue=<control> update=0 packet=0/0 utility=0 messages=1
+    tag index=1 type=L length=3 hex=4c 01 00
+udp file=20241105_051.test.pcap.gz record=4 ts_sec=1730758320 ts_subsec=400395613 endpoint="10.17.13.58:51551 -> 224.0.220.51:51551" payload_bytes=30 flex_packets=1
+  flex index=1 seq=4 issue=<control> update=0 packet=0/0 utility=0 messages=1
+    tag index=1 type=L length=3 hex=4c 01 00

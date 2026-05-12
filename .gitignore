@@ -13,3 +13,6 @@ results/
 !output/
 !output/*.csv
 !output/README.md
+!output/audit/
+!output/audit/*.csv
+!output/audit/*.txt
