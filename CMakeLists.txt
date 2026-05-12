@@ -34,9 +34,9 @@ target_link_libraries(tse_mbo_tests PRIVATE tse_mbo_lib)
 
 add_test(NAME tse_mbo_unit_tests COMMAND tse_mbo_tests)
 
-set(TSE_MBO_FIXTURE_PCAP_051 ${CMAKE_CURRENT_SOURCE_DIR}/../20241105_051.test.pcap.gz)
-set(TSE_MBO_FIXTURE_PCAP_052 ${CMAKE_CURRENT_SOURCE_DIR}/../20241105_052.test.pcap.gz)
-set(TSE_MBO_FIXTURE_VENUE_JSON ${CMAKE_CURRENT_SOURCE_DIR}/../TseVenue.20241105.json)
+set(TSE_MBO_FIXTURE_PCAP_051 ${CMAKE_CURRENT_SOURCE_DIR}/data/20241105_051.test.pcap.gz)
+set(TSE_MBO_FIXTURE_PCAP_052 ${CMAKE_CURRENT_SOURCE_DIR}/data/20241105_052.test.pcap.gz)
+set(TSE_MBO_FIXTURE_VENUE_JSON ${CMAKE_CURRENT_SOURCE_DIR}/data/TseVenue.20241105.json)
 
 if(EXISTS ${TSE_MBO_FIXTURE_PCAP_051} AND EXISTS ${TSE_MBO_FIXTURE_PCAP_052} AND EXISTS ${TSE_MBO_FIXTURE_VENUE_JSON})
   add_executable(tse_mbo_fixture_tests tests/fixture_capture_test.cpp)

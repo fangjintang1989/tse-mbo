@@ -21,33 +21,65 @@ This repo was developed and validated on:
 - **Language standard:** C++20
 - **Other:** zlib development headers (Ubuntu: `sudo apt install zlib1g-dev`)
 
+## Sample data
+
+Everything needed to build, run, and validate the project is committed in-repo. No external downloads.
+
+| Path | Purpose |
+| --- | --- |
+| `data/20241105_051.test.pcap.gz` | Sample FLEX Full MBO capture, session 051 (3.5 MB, gzipped classic PCAP) |
+| `data/20241105_052.test.pcap.gz` | Sample FLEX Full MBO capture, session 052 (4.3 MB) |
+| `data/TseVenue.20241105.json` | Venue catalog: per-issue `securityType` (stock filter) and `basePrice` (Itayose reference price `R`) |
+| `output/iap_iav_20241105.csv` | Committed assignment deliverable, reproduced byte-for-byte by the CLI command below |
+| `docs/assignment-original.docx` | Original take-home assignment |
+| `docs/protocol-original.{docx,pdf}`, `docs/protocol-source.md` | FLEX Full MBO protocol spec (original + text extract for grep) |
+| `docs/jpx-trading-methodology-2024.pdf`, `.extracted.txt` | JPX 2024 Guide to TSE Trading Methodology (Q12 cross-check source) |
+| `docs/itayose-calculation.md` | IAP/IAV algorithm reference: 5-condition derivation, edge cases, JPX Q12 cross-check |
+
 ## Build
 
 ```bash
+# One-time system prereqs (Ubuntu/Debian)
+sudo apt install -y build-essential cmake zlib1g-dev
+
+# Configure and compile
 cmake -S . -B build
 cmake --build build -j
 ```
 
+This produces three binaries under `build/`:
+
+- `tse_mbo` — the CLI that writes the deliverable CSV.
+- `tse_mbo_tests` — unit tests.
+- `tse_mbo_fixture_tests` — real-capture regression; only built because `data/` contains the sample inputs. If `data/` is ever emptied, CMake silently skips this target (see `CMakeLists.txt:41`).
+
 ## Run
 
-The CLI takes one or more `--pcap` paths, the venue JSON (so we know which issues are stocks and where the per-issue `basePrice` comes from), and an output path:
+Regenerate the committed deliverable from the in-repo sample data:
 
 ```bash
 ./build/tse_mbo \
-  --pcap ../20241105_051.test.pcap.gz \
-  --pcap ../20241105_052.test.pcap.gz \
-  --venue-json ../TseVenue.20241105.json \
+  --pcap data/20241105_051.test.pcap.gz \
+  --pcap data/20241105_052.test.pcap.gz \
+  --venue-json data/TseVenue.20241105.json \
   --csv-out output/iap_iav_20241105.csv \
   --summary-only
 ```
 
-Drop `--summary-only` for a verbose run that also prints a few live-order summaries. Drop `--csv-out` if you only want the summary.
+Flags:
 
-Expected input files (live alongside the repo, not committed):
+- `--pcap <path>` — repeat once per capture. Files are timestamp-merged across `--pcap` args, so order on the command line does not matter.
+- `--venue-json <path>` — venue catalog. The `securityType` field filters stocks (`01`–`04`) and `basePrice` seeds the Itayose reference price `R`.
+- `--csv-out <path>` — deliverable CSV destination. Omit it to print the run summary without writing.
+- `--summary-only` — suppress the per-issue live-order previews that otherwise stream to stdout during replay.
 
-- `../20241105_051.test.pcap.gz`
-- `../20241105_052.test.pcap.gz`
-- `../TseVenue.20241105.json`
+Full test suite:
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+The fixture test additionally writes the audit CSVs described in the [Output](#output) section to `build/results/`.
 
 ## Output
 
@@ -121,22 +153,20 @@ docs/
 output/
   iap_iav_20241105.csv           assignment deliverable: symbol,iap,iav for 304 stocks
   README.md                      deliverable description and row-count breakdown
+data/
+  20241105_051.test.pcap.gz      sample FLEX Full MBO capture (session 051)
+  20241105_052.test.pcap.gz      sample FLEX Full MBO capture (session 052)
+  TseVenue.20241105.json         venue catalog (securityType + basePrice per issue)
 CMakeLists.txt                   build configuration; also wires the fixture test only when
-                                 the sample PCAPs and venue JSON are present next to the repo
+                                 the sample PCAPs and venue JSON are present in data/
 ```
 
 ## Tests
 
-```bash
-ctest --test-dir build --output-on-failure
-```
-
-Two test executables:
+Two test executables, both run by `ctest --test-dir build --output-on-failure`:
 
 - **`tse_mbo_unit_tests`** — synthetic coverage for the PCAP reader, UDP decoder, FLEX splitting, order-book replay (`A`/`D`/`E`/`C`/`R`), and the full Itayose 5-condition hierarchy (including Cond 3 vs Cond 5 conflict, all three Cond 5 branches, equidistance tie-break, and the no-result cases).
-- **`tse_mbo_fixture_tests`** — full real-capture regression: reads both sample PCAPs, replays everything, writes the four audit CSVs above, and asserts exact counts (capture records, decoded tags per type, issue counts, indicative row count). This is the test that produces the `build/results/step{1,2,3}_*` artifacts.
-
-The fixture test is only built when the sample PCAPs and venue JSON are present next to the repo (see `CMakeLists.txt:41`).
+- **`tse_mbo_fixture_tests`** — full real-capture regression: reads both sample PCAPs from `data/`, replays everything, writes the four audit CSVs above, and asserts exact counts (capture records, decoded tags per type, issue counts, indicative row count). Only compiled when the sample inputs exist in `data/` (see `CMakeLists.txt:41`).
 
 ## The Itayose rule
 
@@ -169,3 +199,4 @@ Documented for completeness; none are needed to produce the assignment's output 
 - **Halt / special-quote / sequential-trade-quote state machine.** Would require typed `O` and `BP` tag decoding.
 - **Closing-auction pre-closing rules** (on-close / Funari order transitions). Out of scope for an opening-auction deliverable.
 - **Per-securities-company allocation among orders at `P*`.** The JPX rule allocates by aggregated quantity per securities company, but the FLEX MBO feed carries no participant identifier on the wire — this rule cannot be implemented from PCAP-only data. Documented in `docs/itayose-calculation.md` §3 step 7.
+- **Tick-size and lot-size validation against the venue JSON.** Each `TseFullInstrument` carries `tickSizeTable` (ID `1` or `3`, referencing JPX's published tick schedules) and `unitOfTrading` (`1` / `10` / `100` / `1000`), and the assignment doc calls these out as available in the JSON. We deliberately do not consume them: every candidate IAP is a price that already appeared on the wire as an `A`-tag limit, so it is on-tick by construction — the exchange would not have accepted it otherwise — and every quantity summed into `cum_bid` / `cum_ask` came straight off the wire, so the lot-size invariant cannot be broken by our arithmetic. Adding both checks would be defensive instrumentation against decoder bugs or feed corruption rather than an algorithmic requirement of the Itayose rule, and would not change the deliverable CSV on the supplied captures. Tick-size validation would additionally require encoding the JPX Table 1 and Table 3 grids (a yen-step schedule over ~13 price bands each) from the JPX Trading Methodology PDF, since the JSON only stores the table ID. We load only `exchSymbol`, `securityType`, and `basePrice` from the venue JSON (`src/app/app.cpp:80`).

@@ -20,9 +20,9 @@ Both no-result classes correctly emit `iap=0.0000, iav=0` under the JPX Itayose 
 
 ```bash
 ./build/tse_mbo \
-  --pcap ../20241105_051.test.pcap.gz \
-  --pcap ../20241105_052.test.pcap.gz \
-  --venue-json ../TseVenue.20241105.json \
+  --pcap data/20241105_051.test.pcap.gz \
+  --pcap data/20241105_052.test.pcap.gz \
+  --venue-json data/TseVenue.20241105.json \
   --csv-out output/iap_iav_20241105.csv \
   --summary-only
 ```
